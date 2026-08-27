@@ -434,7 +434,7 @@ erDiagram
     PRACTITIONER {
         uuid id PK
         string display_name
-        note "no organization_id or location_id here — see affiliation/assignment tables"
+        string note "no organization_id or location_id here — see affiliation/assignment tables"
     }
     PRACT_ORG_AFFILIATION {
         uuid id PK
@@ -575,7 +575,7 @@ erDiagram
         string capacity_display
         string assignment_display
         string release_display
-        note "computed/cached for operator dashboard only — never written to directly, never used as an authorization source"
+        string note "computed/cached for operator dashboard only — never written to directly, never used as an authorization source"
     }
 ```
 
