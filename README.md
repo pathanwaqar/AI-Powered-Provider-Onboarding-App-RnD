@@ -1,1004 +1,998 @@
-# Keystone AI Provider Onboarding & Readiness
-## Revised Phase 0 and Katherine Proposal
+# Keystone AI Provider Onboarding & Readiness — Phase 0 Response
 
-**Prepared by:** Waqar Pathan  
-**Packet reviewed:** Keystone AI Provider Onboarding & Readiness — Consolidated Developer Execution Packet v3.0  
-**Revision date:** August 27, 2026  
-**Document status:** Revised proposal submitted for Keystone review; no implementation is authorized  
-**Controlling record:** The accepted Upwork message and funded Upwork milestone. This repository copy is supporting material only.
+**Prepared by:** Arshad Ali Lagari
+**In response to:** Keystone AI Provider Onboarding & Readiness, Consolidated Developer Execution Packet v3.0 (Effective Date 2026-08-24)
+**Purpose:** This is a discovery and planning response only, as instructed. It is **not** a commitment to build the full platform and does **not** authorize Phase 1 or later. It proposes architecture, a Phase 0 + Katherine bottom-up estimate, and records every open question rather than resolving it silently, per the packet's own controlling rule (Packet p.1, "Precedence").
 
 ---
 
-## 1. Scope and authorization boundary
+## 0. How to read this document
 
-This document responds to Keystone's requested revisions and proposes two independently authorized milestones:
+Following the packet's own vocabulary (Packet p.1) so terminology stays consistent with the client's controlling document:
 
-1. **Phase 0 — design and specification**
-2. **Katherine — synthetic vertical-slice proof**
+- **MUST/MUST NOT** — acceptance requirement
+- **SHOULD** — expected unless a written deviation exists
+- **MAY** — optional
+- **TBD** — a named decision is required before dependent work can start
+- **EXTERNAL UNKNOWN** — needs authoritative evidence from Keystone/ChildLink/Elwyn/county before it can become a production rule
+- **ASSUMPTION** — a working assumption we are making now, subject to client confirmation
 
-Nothing in this document authorizes implementation. Work begins only after the applicable Upwork milestone is expressly approved and funded. A meeting, draft, comment, demonstration, or acceptance of one milestone does not authorize another milestone or expand scope.
-
-All project communication, questions, decisions, deliverables, approvals, scope changes, and payment authorizations will remain in Upwork. After any meeting, I will post written notes in Upwork listing decisions, assumptions, unresolved issues, and proposed scope changes. A meeting note changes scope only when Keystone confirms it in writing and the applicable Upwork milestone is updated and accepted.
-
-### Terminology
-
-| Term | Meaning |
-|---|---|
-| MUST / MUST NOT | Objective acceptance requirement |
-| SHOULD | Proposed default that requires a written deviation if changed |
-| TBD | Keystone decision required before dependent implementation |
-| EXTERNAL UNKNOWN | Authoritative policy, contract, local-program, or integration evidence is required |
-| ASSUMPTION | Estimate basis that Keystone must confirm |
-| RESOLVED IN THIS REVISION | Prior inconsistency removed from the proposal |
+Every item below is tagged with one of these so the client can scan for what actually blocks work.
 
 ---
 
-## 2. Revision traceability
+## 1. Gap, Question, Dependency & Assumptions Register
 
-| Requested revision | Resolution in this document |
-|---|---|
-| 1. Correct document status | Header and Section 1 |
-| 2. Reconcile G-13, G-13a, and G-14 | Complete register in Section 4 |
-| 3. Use one architecture and price it consistently | Sections 5 and 16 |
-| 4. Replace Node.js 18+ and state upgrade policy | Section 5.3 |
-| 5. Compare Supabase with self-managed AWS RDS | Architecture Decision Record in Section 6 |
-| 6. Explain database-level authorization and negative tests | Section 7 |
-| 7. Expand the canonical model | Section 8 |
-| 8. Keep readiness dimensions separate | Section 9 |
-| 9. Separate detection, recalculation, restriction, suspension, review, and release | Section 10 |
-| 10. Require affirmative human confirmation of AI classification | Sections 11–13 |
-| 11. Clarify restricted-data routing | Section 12 |
-| 12. Identify deterministic and AI functions | Section 11 |
-| 13. Separate technical administration from release authority | Section 14 |
-| 14. Use one identity and session model | Section 15 |
-| 15. Remove premature components | Section 5.4 |
-| 16. Replace application-local cron | Section 17 |
-| 17. Provide three infrastructure cost models | Section 16 |
-| 18. Separate design, prototype, production-intent, and hardening estimates | Section 19 |
-| 19. Separate Phase 0 and Katherine Upwork milestones | Section 20 |
-| 20. Put work products in Keystone-controlled accounts per milestone | Section 21 |
+| ID | Type | Item | Related Spec(s) | Decision Needed From | Impact if Unresolved |
+|---|---|---|---|---|---|
+| G-01 | TBD (awaiting ratification) | We propose self-managed PostgreSQL (AWS RDS) + a custom Node/Express/Prisma backend instead of Supabase, with native PostgreSQL row-level security (not application checks alone) as a mandatory second enforcement layer. Full comparison and rationale in Section 2.4 (ADR-001) and Section 2.5 (RLS strategy). Not yet approved by Keystone. | Spec 71 (RBAC/SoD) | Keystone product owner | Blocks Phase 0 architecture sign-off until ADR-001 is ratified or an alternative is directed. |
+| G-02 | TBD | Full original v3.0 PDF ("one self-contained PDF containing specifications 00-83") vs. the reconstructed packet we received — the packet's own "Reconstruction notice" states this edition was rebuilt after the original workspace artifact became unavailable. Several domain specs (34-67: PROMISe/HCSIS, county/joinder overlays, CPSL clearances, fee schedules) currently carry generic boilerplate rather than PA-EI-specific detail. | All specs 34-67 | Keystone | Estimate for Phase 2+ cannot be trusted until we know whether domain-specific detail exists in the original PDF or must be authored jointly during Phase 0/1. |
+| G-03 | EXTERNAL UNKNOWN | ChildLink system: API/integration availability, auth model, data contract, rate limits, sandbox/test environment. | Spec 76 | ChildLink / Keystone contract owner | No integration design or estimate possible; Phase 3+ blocked without this. |
+| G-04 | EXTERNAL UNKNOWN | Elwyn system: same as above (API, auth, contract, test env). | Spec 76 | Elwyn / Keystone contract owner | Same as G-03. |
+| G-05 | EXTERNAL UNKNOWN | County and joinder-specific overlay rules (which counties, what local variations, who ratifies them). | Spec 36, 64 | Keystone / county programs | Phase 2 "nine-provider generalization" cannot be scoped without knowing how many distinct overlays exist. |
+| G-06 | EXTERNAL UNKNOWN | PROMISe enrollment, ITF Waiver, and HCSIS workflow specifics — is this read-only lookup, manual reconciliation, or an API integration? | Spec 35 | Keystone / PA DHS program contacts | Directly affects whether Phase 2/3 needs a new integration or a manual evidence-upload workflow. |
+| G-07 | TBD | Google Workspace admin access: will Keystone provide a Google Workspace domain with domain-wide delegation for Gmail API + Drive API scoped service access, or do we integrate via individual OAuth per operator? | Spec 08, 09 | Keystone IT/security | Changes both architecture (service account vs. per-user OAuth) and the RBAC/audit model. |
+| G-08 | ASSUMPTION | "Katherine" is one fully synthetic provider record (no real PHI/PII) used as the deterministic acceptance fixture per Spec 04/24/82. We assume Keystone will supply or approve the synthetic data content; we do not want to author clinical/legal fixture content unilaterally. | Spec 04, 24, 82 | Keystone Product/Operations | Katherine fixture cannot be finalized without an agreed source for its contents. |
+| G-09 | TBD | Authoritative source for PA EI policy citations (Spec 63) — is there an existing internal register, or do we build the Policy Decision and Ratification Register (Spec 43) from zero in Phase 0? | Spec 43, 63 | Keystone Product/Operations | Affects Phase 0 scope/estimate materially. |
+| G-10 | ASSUMPTION | No production data or real PHI will be provided during Phase 0/1 (confirmed in job posting). We will build and test exclusively against synthetic fixtures until an explicit, signed authorization changes this. | Spec 03, 10 | — | None if this assumption holds; flags a scope change if it doesn't. |
+| G-11 | TBD | Hosting/account ownership: packet requires developer to "work inside accounts/repositories owned by the client." Please confirm Keystone will provision the AWS account, GitHub org, and Google Workspace project so IAM/least-privilege can be set up correctly from day one rather than migrated later. | Spec 14, 71 | Keystone IT | Late account handoff typically forces a costly access-migration pass before go-live. |
+| G-12 | TBD | Definition of "operator" headcount and expected concurrent usage (for RDS sizing, Redis sizing, rate-limit tuning, cost estimate). | Spec 25 (NFR) | Keystone Operations | The Tier 2/Tier 3 cost estimates (Section 10.2, 10.3) carry wide ranges specifically because of this open item. |
+| G-13 | ASSUMPTION | Non-production and production should run in separate AWS accounts (or, at minimum, separate VPCs with distinct IAM boundaries) rather than one shared account. This is our recommendation, not yet confirmed. | Spec 14, 25 | Keystone IT/security | If a single shared account is mandated instead, the isolation/IAM design in Section 9 and the hardening checklist (Phase 5) change. |
+| G-14 | TBD (proposal made, awaiting ratification) | Requester/reviewer/releaser separation (Spec 71): we propose a hard block (same person cannot confirm evidence and release the same practitioner's readiness) with a logged compensating co-sign for small-team deadlock cases — full detail in Section 7.3. Not yet ratified by Keystone. | Spec 71 | Keystone Operations | If Keystone prefers a soft-warning-only approach instead, Section 7.3's service-layer enforcement changes from a hard block to a flagged control. |
+| G-15 | ASSUMPTION | Redis runs as a Docker container on the same EC2 instance as the API/workers, to control cost during Phase 0/1. No managed high-availability/failover on Redis until volume justifies a dedicated instance. | Spec 25 (NFR) | Keystone Operations | If Redis availability is a Phase 0/1 concern (e.g., session loss on instance restart is unacceptable), the Section 10 cost estimate increases to add a dedicated, highly-available Redis instance. |
 
 ---
 
-## 3. Requirement implementation classification
+## 2. Proposed Technical Architecture & Stack
 
-This classification prevents external unknowns from becoming production rules.
+### 2.1 Principle carried through from the packet
 
-| Classification | Immediately implementable after milestone authorization | Requires additional Keystone detail | Requires authoritative external information |
+The system stays **deterministic beneath the AI layer** (Packet "Controlling boundary", Spec 00, 03, 05, 69). Concretely: every consequential state change happens through a typed service-layer function backed by a DB constraint and an audit event — never directly from an LLM response. AI output lands in a `proposed_action` / `agent_finding` table that a human reviews before any state transition executes.
+
+### 2.2 Stack (per user's directive — supersedes the job posting's Supabase mention; logged as G-01)
+
+**Backend**
+- Node.js 24 (Active LTS) / TypeScript
+- Express.js v5
+- Prisma ORM v7 + PostgreSQL adapter
+- AWS RDS for PostgreSQL
+
+**Runtime baseline and dependency-upgrade policy**
+- **Exact supported baseline:** Node.js 24, currently in Active LTS (Active LTS: 2025-10-28 to 2026-10-20; Maintenance: 2026-10-20 to end-of-life 2028-04-30). Compatible with Express v5, Prisma v7, and Next.js 16 on the frontend — no known version conflicts across the stack.
+- **Upgrade policy:** we track the Node.js LTS schedule directly (not a fixed version pinned indefinitely). Production stays on the current Active LTS line; we do not run on a line past its Maintenance start without an explicit, agreed exception. When a new even-numbered release enters Active LTS (each October), we schedule the upgrade for the following staging cycle rather than immediately — giving the ecosystem (Prisma, Express, AWS SDK, etc.) time to publish compatible releases first. Security patch releases within the current major version are applied on a monthly review cadence, or sooner for a published critical CVE. Every dependency upgrade runs through the same CI test suite (Section 9) before promotion to staging or production — no version bump ships without passing the automated regression suite.
+**Auth & Security — one coherent identity/session model (client point 14)**
+- **SSO-only, no local passwords.** Every operator authenticates via Firebase Admin SDK against Keystone's Google Workspace — there is no `bcryptjs`/local-password path in V1. This is a deliberate simplification: the earlier draft listed Firebase, JWT, Google sign-in, *and* local password hashing side by side without saying how they relate, which is exactly what Keystone flagged. Removing the local-password path removes the ambiguity rather than explaining it away.
+- **Provisioning:** an operator account is created only by an existing System Administrator, tied to a Keystone Workspace email — there is no self-service sign-up.
+- **MFA:** enforced at the Google Workspace level (Keystone's existing org-wide policy applies) rather than a second app-specific MFA system — one less credential surface to secure.
+- **Session/token model:** on successful SSO, we issue a short-lived JWT access token (15 min) plus a refresh token. The refresh token's raw value is never stored — only its bcrypt hash (`RefreshToken.tokenHash`), matching the pattern already validated in the developer's production schema library. `Session` rows track device/IP/last-used metadata only; they do not duplicate the token itself, avoiding the two-sources-of-truth issue identified when reviewing that reference schema.
+- **Revocation:** disabling a `USER_ACCOUNT` (`is_active = false`) immediately revokes all of that user's `RefreshToken` rows and active `Session` rows in the same transaction — no waiting for tokens to expire. A role change (`USER_ROLE_ASSIGNMENT` insert/delete) does the same, so a permission downgrade takes effect immediately rather than waiting out the access token's 15-minute window.
+- **Session duration:** access token 15 minutes; refresh token 12 hours of inactivity or 30 days absolute, whichever is sooner; both configurable per environment.
+- **Reauthentication for consequential actions:** approving a `RELEASE_READINESS` transition, authorizing a `SUSPENSION`, or overriding an `OPERATIONAL_RESTRICTION` requires a fresh step-up confirmation even within an active session — implemented via the same `OtpVerification`-style hashed, expiring, attempt-limited code pattern used elsewhere, not a reused password. This is what makes the "affirmative human confirmation" from client point 10 actually hard to click through by accident.
+- Helmet, express-rate-limit, CORS allowlist, Zod for all input validation (including AI tool-call arguments — see Section 6)
+
+**Real-time & Background Jobs — safe under multiple running instances (client point 16)**
+- Redis (Docker container on the API/worker EC2 instance for Katherine/pilot; a dedicated managed instance is the Section 10 production-tier assumption) — sessions, BullMQ backing store
+- BullMQ for **all** scheduled and event-driven background work — Gmail/Drive polling, document classification, expiration scans, follow-up draft generation. We are not using `node-cron`/`node-schedule`: those run in-process and double-fire if more than one API/worker instance is ever running (a real risk the moment we scale past one EC2 instance). BullMQ's repeatable jobs are Redis-backed, so only one worker picks up a given scheduled run regardless of how many instances are online.
+- **Idempotency:** every job carries a deterministic dedupe key (e.g., `gmail-sync:{threadId}:{historyId}`); a job that runs twice (retry, redeploy, overlap) is a no-op the second time, checked before any write.
+- **Concurrency control:** BullMQ concurrency limits are set per queue (e.g., Gmail sync capped independent of classification jobs) so one slow job type can't starve another.
+- **Retry limits:** exponential backoff, capped attempts (default 5) per job type; a job is never retried indefinitely.
+- **Dead-letter handling:** a job that exhausts its retries moves to a dead-letter queue rather than silently disappearing — visible in the operator console's quarantine/failure queue (Section 9), not just a log line.
+- **Replay:** dead-lettered jobs can be manually re-queued from the console after the underlying cause is fixed (e.g., a Gmail token was expired and has since been refreshed).
+- **Reconciliation:** a separate, lower-frequency job compares "messages/files we expected to have processed" against "messages/files we actually have records for" (via Gmail/Drive history tokens and S3 object listings) and raises a `FINDING` if anything was silently missed — this is what catches a dropped job that even dead-lettering didn't catch (e.g., the queue itself was unavailable for a window).
+- Socket.io is **deferred past Katherine** — see the scope-trim note below (client point 15). Katherine's UI uses polling/refresh instead of a live socket connection.
+
+**Storage & Media**
+- AWS S3 — canonical document store (originals + normalized copies), versioned bucket
+- Sharp — thumbnail/preview generation for document review UI
+- Multer — upload handling (admin-side manual uploads only; Drive/Gmail evidence comes via API, not upload)
+
+**Communication**
+- SendGrid — **deferred past Katherine** (see scope-trim note below); Katherine's `draft_followup_email` tool produces a draft that a human sends manually via Gmail, so no automated outbound-email service is required yet
+- Twilio — **removed from the Phase 0/1 stack entirely.** We found no confirmed V1 requirement for SMS in the packet or job posting; re-add only if Keystone confirms a specific use case (register item added below)
+
+**AI**
+- OpenAI API, function calling + structured outputs (JSON Schema-validated), per Spec 05 and Spec 22
+
+**Docs, Test, Observability**
+- Swagger/OpenAPI for the internal API
+- Jest for unit/integration tests
+- Winston (structured JSON logs) + Morgan (HTTP access logs)
+- CloudWatch (AWS-native) for infra metrics/alarms; application error tracking via Winston → CloudWatch Logs (Sentry is an option, costed separately in Section 10 as optional)
+
+**Repository layout**
+
+```
+keystone-ei-backend/
+├── src/
+│   ├── controller/       # request handlers, thin — delegate to services
+│   ├── services/         # business logic, state-machine, audit writes
+│   ├── routes/           # API endpoints
+│   ├── middleware/       # auth, RBAC guard, validation, audit hook
+│   ├── ai/               # tool definitions, schema contracts, prompt assembly, allowlist filter
+│   ├── socket/           # websocket handlers (queue/dashboard live updates)
+│   ├── jobs/             # BullMQ workers: gmail-sync, drive-sync, classify, expire-scan, digest
+│   ├── config/
+│   └── utils/
+├── packages/
+│   ├── libs/              # prisma client singleton, redis client singleton
+│   ├── utils/
+│   └── error-handler/
+├── prisma/                # schema.prisma, migrations, seed (synthetic fixtures incl. Katherine)
+└── logs/
+```
+
+**Deployment**
+- AWS: EC2 for the API + workers, RDS PostgreSQL, Redis (Docker container on the same instance), S3, nginx as reverse proxy/ingress in front of the EC2 instance (TLS termination, security headers) — see the scope-trim note below for what's deferred
+- Docker + Docker Compose for local dev; multi-stage builds for production images
+- GitHub Actions CI/CD: lint (ESLint/Prettier) → test (Jest) → build → deploy; Husky pre-commit hooks; `npm audit`/Snyk in CI
+- **Three environments minimum**: `dev`, `staging` (synthetic-data acceptance testing, incl. Katherine + nine-provider fixtures), `production` — see Spec 25, Spec 14. Production and non-production AWS accounts/VPCs should be separated (ASSUMPTION G-13, see register).
+
+**Frontend**
+- Next.js 16 (App Router), TypeScript, Tailwind CSS, shadcn/ui, Redux Toolkit, React Query. For Katherine, served as a Node process on the **same EC2 instance** as the API, behind the same nginx — see scope-trim note below for why a separate Vercel deployment is deferred.
+
+### 2.2a Scope trimmed for Katherine (client point 15)
+
+Client instruction: retain a component only where an accepted Phase 0/Katherine requirement justifies it; simplicity and enforceability are priorities. Reviewed one by one:
+
+| Component | Decision for Katherine | Why |
+|---|---|---|
+| Socket.io | **Deferred to Phase 4** | Katherine is a single synthetic record; the UI can poll/refresh. Live dashboard updates only earn their cost once there's a real multi-operator queue (Phase 4, Spec 74). |
+| Twilio (SMS) | **Removed from Phase 0/1 entirely** | No confirmed V1 requirement in the packet or job posting. Re-add only against a specific, confirmed use case. |
+| SendGrid | **Deferred to Phase 3/4** | Katherine's follow-up drafting tool produces a draft; a human sends it via Gmail. No automated outbound email is a V1 requirement yet. |
+| CloudFront | **Deferred to Phase 3/4** | No meaningful CDN benefit at Katherine's scale (one record, a handful of documents); S3 presigned URLs are sufficient and simpler to reason about for access control. |
+| Redis / BullMQ | **Kept — not premature** | Needed for session storage and to make AI tool calls and the expiration scan idempotent/retryable/dead-letterable (client point 16) even at small scale. This is foundational, not an early optimization. |
+| nginx | **Kept** | Standard, cheap TLS-termination/security-header layer in front of a single instance — removing it doesn't simplify anything meaningful. |
+| Separate Vercel deployment | **Deferred to Phase 4** | A second hosting account/pipeline/access-control surface for a proof-of-concept UI adds operational surface without a Katherine-specific requirement driving it. Serving Next.js from the same EC2 instance keeps Katherine to one deployment target; revisit Vercel once the Phase 4 operator console has real usage patterns to design for. |
+
+This directly shrinks the **Katherine prototype** cost tier in Section 10 (no CloudFront, no SendGrid, no Twilio, no second hosting account) compared to the Internal Pilot / Production tiers, which restore these as real requirements appear.
+
+### 2.3 High-level component diagram
+
+```mermaid
+flowchart LR
+    subgraph Client
+        UI[Next.js Admin Console]
+    end
+
+    subgraph Backend[AWS EC2 - Express API]
+        API[REST API + Zod validation]
+        RBAC[RBAC / Auth Middleware]
+        SVC[Service Layer + State Machine]
+        AITOOLS[AI Tool Layer<br/>typed, allowlisted, audited]
+        AUDIT[Audit Event Writer]
+    end
+
+    subgraph Async[Background Jobs - BullMQ Workers]
+        GMAILJOB[Gmail Sync Job]
+        DRIVEJOB[Drive Sync Job]
+        CLASSIFYJOB[Document Classify Job]
+        EXPIREJOB[Expiration Scan Job]
+    end
+
+    subgraph Data
+        PG[(RDS PostgreSQL)]
+        REDIS[(Redis - Docker on EC2)]
+        S3[(S3 Evidence Store)]
+    end
+
+    subgraph External
+        GMAIL[Gmail API - evidence stream]
+        DRIVE[Drive API - evidence stream]
+        OPENAI[OpenAI API - advisory only]
+        FIREBASE[Firebase Admin - SSO]
+    end
+
+    UI -->|JWT| API
+    API --> RBAC --> SVC
+    SVC --> PG
+    SVC --> AUDIT --> PG
+    SVC -->|proposed action only| AITOOLS
+    AITOOLS -->|allowlisted fields only| OPENAI
+    AITOOLS -->|writes proposal, never final state| SVC
+    GMAILJOB --> GMAIL
+    DRIVEJOB --> DRIVE
+    GMAILJOB --> S3
+    DRIVEJOB --> S3
+    CLASSIFYJOB --> AITOOLS
+    EXPIREJOB --> PG
+    Async --> REDIS
+    API -->|SSO| FIREBASE
+```
+
+### 2.4 Architecture Decision Record — ADR-001: Database & Backend Platform
+
+**Status:** Proposed — pending Keystone ratification. Per the client's explicit instruction, this is a recommendation for approval, not an assumed decision; the previously-stated departure from Supabase in this proposal's earlier draft was not yet justified and is superseded by this ADR.
+
+**Context:** The job posting lists Supabase/Supabase Auth/RLS as a preferred technology. The proposed stack instead uses self-managed AWS RDS PostgreSQL with a custom Node/Express/Prisma backend. Keystone has asked for an explicit, criteria-based comparison before approving this departure.
+
+**Options considered**
+
+| Criterion | Option A — Supabase (managed Postgres + Auth + RLS + realtime) | Option B — Self-managed AWS RDS/PostgreSQL + custom Node/Express/Prisma |
+|---|---|---|
+| **Security (row-level tenant isolation)** | RLS is first-class and automatic: Supabase's client (via PostgREST) injects the authenticated user's JWT into every DB session, so policies referencing `auth.uid()`/`auth.jwt()` are enforced with no extra application code. Strong default. | RLS is available (it is a native PostgreSQL feature, not a Supabase-exclusive one) but nothing wires it up automatically — the application must explicitly set session context (`SET LOCAL app.current_org_id = …`) on every request before each query. Equally strong *if built correctly*, but the correctness depends on our discipline, not the platform's default. |
+| **Tenant isolation guarantee** | Enforced at the database layer by default; hard to bypass accidentally from application code. | Requires (a) RLS policies on every tenant-scoped table, (b) a runtime DB role with `BYPASSRLS` explicitly *not* granted, and (c) a dedicated, more-privileged migration role kept separate from the runtime role. If any of these three are missed, isolation silently fails rather than erroring loudly — this must be treated as a release-blocking checklist item, not an assumption. |
+| **Operational complexity** | Lower — Supabase manages Postgres upgrades, backups, connection pooling (via PgBouncer/Supavisor), and Auth/session infrastructure. | Higher — we own RDS patching/backup windows, connection pooling (PgBouncer or Prisma's own pool), and all session/token infrastructure ourselves. Materially more moving parts to operate correctly. |
+| **Vendor dependency** | Higher — Supabase-specific Auth schema, storage API, and some Postgres extension/config restrictions create switching cost if we ever need to leave. | Lower — RDS PostgreSQL is a commodity managed database; the application layer is ours; portable to any Postgres host with minimal change. |
+| **Fit for background-job architecture** | Weak fit for this project's actual workload. Keystone's V1 scope is job-heavy: polling Gmail/Drive, document classification, expiration sweeps, follow-up drafting, idempotent retries (packet Specs 08-10, 29). Supabase has no first-class equivalent to a BullMQ-style durable queue with retry/backoff/dead-letter semantics; achieving this on Supabase would mean bolting on external queue infrastructure (e.g., a separate Redis/queue service) anyway — at that point we are paying for Supabase's Auth/RLS convenience while still building and operating the job infrastructure ourselves. | Strong fit — Express + BullMQ + Redis is built for exactly this kind of durable, retryable, idempotent background processing, which is a core, non-optional requirement of the packet (Spec 29 error/retry/recovery catalog, Spec 08/09 evidence ingestion). |
+| **Expected cost (Phase 0/1, low volume)** | ~$25/mo base (Pro plan) plus usage-based overages, **plus** a separate queue/Redis service once job requirements exceed what Edge Functions can reasonably do — likely a similar total to Option B once the missing piece is added. | ~$42-70/mo combined (RDS + EC2 with containerized Redis — see Section 10). Comparable total cost; the difference is where the cost sits (platform fee vs. infrastructure we operate). |
+| **Development effort** | Lower upfront (Auth, Admin UI, RLS tooling ship out of the box). | Higher upfront — RLS session-context plumbing, role separation, and job infrastructure must be built by us (estimated ~6-10 hours one-time setup, itemized in Section 3's Phase 0 estimate under RBAC/security scaffolding). |
+| **Long-term maintenance** | Tied to Supabase's roadmap, pricing, and platform limits (e.g., Edge Function execution limits, connection limits on lower tiers). | We control upgrade timing, scaling, and configuration directly; more ongoing ownership, but no risk of a third-party platform constraint blocking a future requirement (e.g., a long-running AI batch job). |
+
+**What specifically becomes difficult if we used Supabase alone (without also standing up separate queue/Redis infrastructure):**
+- No durable, retryable job queue for Gmail/Drive polling and document classification — Spec 29's idempotent-retry/dead-letter requirements would not be met by Supabase's built-in tooling alone.
+- Complex, multi-step AI tool-call orchestration (allowlist filter → OpenAI call → schema validation → human-review queue) is easier to express, unit-test, and audit as typed TypeScript service code than as a mix of SQL functions/triggers and Edge Functions.
+- Socket.io-based live queue/dashboard updates (missing-evidence, conflicts, expiring-item queues) would need a different real-time mechanism (Supabase Realtime, which is a different model — Postgres change-data-capture — not a drop-in replacement for our queue-progress events).
+- The moment we add a separate Redis/queue service to cover the gap above, we are running two platforms instead of one, which removes most of Supabase's "operational simplicity" advantage while keeping its vendor-dependency cost.
+
+**Recommendation:** Option B (self-managed RDS + custom stack), **with native PostgreSQL RLS implemented as a mandatory second enforcement layer**, not an optional one — see Section 2.5. This is put forward for Keystone's approval, not assumed.
+
+### 2.5 Database-Level Authorization Strategy (Row-Level Security)
+
+Per Keystone's explicit point: **application-layer checks and ordinary database constraints are not automatically equivalent to PostgreSQL row-level security**, and we agree — this section specifies how RLS itself will be implemented, not just app-layer authorization.
+
+**Two independent enforcement layers, both mandatory (defense-in-depth, neither is a substitute for the other):**
+
+1. **Application-layer RBAC** (Section 7) — service-layer functions check role/permission before executing any business action. This is where business rules like "only Compliance Officer can release a readiness state" live, because that logic is not expressible as a simple row filter.
+2. **Database-layer RLS** — every tenant/resource-scoped table has `ENABLE ROW LEVEL SECURITY` and explicit `CREATE POLICY` statements. This is a backstop: even if an application-layer bug or a future direct-DB-access script omits a check, the database itself refuses to return or modify rows outside the caller's authorized scope.
+
+**Isolation dimensions enforced by RLS policies:**
+
+| Dimension | Enforced via | Example |
+|---|---|---|
+| Organization | `organization_id` column + session variable `app.current_org_id` | A coordinator at Org A cannot read Org B's provider records, even via a raw query. |
+| Location | `location_id` column, checked against the caller's assigned location scope (for roles scoped below the org level) | TBD whether V1 needs location-level scoping in addition to org-level — flagged for the data-model revision (client point 7) rather than assumed here. |
+| Practitioner | `practitioner_id` linkage through the affiliation, requirement, and evidence tables (Section 4) | A record's evidence rows inherit the organization scope of whichever `PRACT_ORG_AFFILIATION` is active at the time. |
+| User | `current_setting('app.current_user_id')`, used for self-scoped views (e.g., "my assigned queue items") | |
+| Role | Policies reference a role-lookup, not a hardcoded role name, so role definitions can change without rewriting policies | |
+| Data class (restricted vs. standard) | A separate `data_class` column/policy on any table capable of holding evidence metadata; restricted-class rows are only readable by roles explicitly granted restricted-data access, independent of org membership | Directly implements Spec 03/10's routing requirement at the storage layer, not just at the AI-input-filter layer. |
+
+**How session context reaches PostgreSQL (the part Supabase gives for free and we must build):**
+
+- A Prisma middleware/extension wraps every database-touching request in a transaction that issues `SET LOCAL app.current_org_id`, `app.current_user_id`, and `app.current_role` before the actual query — sourced from the verified JWT, never from client-supplied request parameters.
+- Background jobs (BullMQ workers) run under a distinct, narrowly-scoped **system role** with its own RLS policies (e.g., allowed to write classification proposals, not allowed to write final decisions) — workers do not run as an unrestricted service account.
+- **Role separation is a hard requirement, not a convention:** the runtime application database role has `BYPASSRLS` explicitly revoked; only a separate migration role (used solely by CI/CD for schema changes, never by the running application) has elevated privileges. This is the single most common way RLS silently fails to apply, so it is called out as its own acceptance check below.
+
+**Negative testing (directly answering "how will this be enforced and negatively tested"):**
+
+- A dedicated test suite connects to the database **as the application's runtime role**, bypassing the Express layer entirely, and asserts that cross-organization reads/writes are rejected — this proves RLS itself, independent of whether the application code remembers to filter.
+- A CI check fails the build if any table under `prisma/schema.prisma` that should be tenant-scoped does not have `ENABLE ROW LEVEL SECURITY` set (schema-linter script, part of Phase 0 deliverables).
+- A CI check fails the build if the runtime role has `BYPASSRLS` or superuser privileges (queries `pg_roles` in the test database as part of the acceptance suite).
+- Katherine's acceptance test (Section 8) includes at least one negative scenario: an authenticated user from a different synthetic organization attempting to read Katherine's record, asserted to return zero rows.
+
+**If Supabase were used instead**, the same policies and the same negative-testing approach would still be required — RLS correctness is not free even on Supabase, since a misconfigured policy is still a misconfigured policy. What Supabase removes is only the *session-context plumbing* (item 1 above), because PostgREST does that automatically from the JWT; it does not remove the need to design and negatively test the policies themselves.
+
+---
+
+## 3. Bottom-Up Estimate — Phase 0 + Katherine Milestone
+
+Per Spec 83's rule, hours are broken out by category rather than a single lump figure. Per client point 18, every line also carries a **deliverable tier** — Design/Specification, Prototype, or Production-intent — so it's clear what Keystone actually receives at each line, and nothing prototype-level is presented as a completed production requirement. **Production Hardening (the fourth tier client point 18 names) does not appear below — it is out of scope for Phase 0/Katherine entirely and belongs to Phase 5** (packet's own phase structure); nothing in this milestone is hardening work. These are **planning estimates**, not a fixed bid, and assume the open items in Section 1 resolve within Phase 0.
+
+### Phase 0 — Foundation control (Specs 00-03, 20-23, 43, 50, 63, 68-72, 78)
+
+| Category | Tier | Hours | What Keystone receives |
 |---|---|---|---|
-| Platform foundation | Client-owned repository, CI, typed schema, audit event pattern, synthetic fixtures, environment configuration | Naming standards, account owners, retention, availability targets | None |
-| Identity and access | Google SSO through Supabase Auth, scoped role assignments, RLS, negative authorization tests | User roster, role holders, small-team separation-of-duties decision, session policy | Keystone Google Workspace configuration |
-| Provider model | Multi-organization practitioners, locations, relationship types, effective dates, supervisors, disciplines, specialties | Keystone terminology and required fields | County/joinder participation definitions where governed externally |
-| Evidence | Versioned evidence, many-to-many requirement links, findings, decisions, human confirmation | Accepted evidence taxonomy, duplicate rules, retention, review responsibilities | Program-specific evidence standards and source policy |
-| Readiness | Separate dimensions, deterministic calculation framework, human release records | Ratified dimension rules, reason codes, operator summaries | County, joinder, ChildLink, Elwyn, PROMISe/HCSIS, and policy-controlled rules |
-| AI assistance | Typed advisory tools, structured responses, citations, confidence display, human confirmation | Model selection, approved prompts, evaluation set, acceptable use | Data-processing terms and any external model restrictions |
-| Integrations | Connector interfaces and mock contracts | Google OAuth mode and reconciliation rules | ChildLink/Elwyn/API contracts, county systems, PROMISe/HCSIS capabilities |
+| Repo/env/CI scaffold | Production-intent | 6-8 | Monorepo, Docker Compose, GitHub Actions, three environments — carries forward unchanged into every later phase |
+| Canonical data model — Prisma schema, 27+ entities, migrations (Section 4) | Production-intent | 14-18 | The actual schema this proposal specifies, not a placeholder — includes the multi-org/multi-location/effective-dated structure from client point 7 |
+| RLS policy implementation + role separation + negative-test suite (Section 2.5) | Production-intent | 8-10 | Working RLS policies on every tenant-scoped table, plus the negative tests that prove it (client point 6) |
+| RBAC scaffolding — 6 roles, 8 permission dimensions (Section 7) | Production-intent | 8-10 | Middleware + service-layer checks enforcing the revised matrix (client point 13), not just documentation of it |
+| Identity/session design implementation — SSO, token/session model, step-up reauth (Section 2.2) | Production-intent | 6-8 | The coherent auth model from client point 14, working end-to-end |
+| State-machine contract — guards, transition tables (Section 5) | Production-intent | 6-8 | The six-concept model (client point 9) implemented as guarded transitions, not just the table in this document |
+| Restricted-data pipeline, steps 1-6 (Section 11.1: receipt through prompt construction) | Production-intent | 5-6 | Steps 7-11 land under Katherine below, once there's a document to run them against |
+| Deployment — AWS provisioning (Section 10.1 spec: RDS `db.t4g.medium`, EC2 `t3.medium`, S3, Redis-on-EC2, nginx/TLS), CI/CD pipeline | Production-intent | 10-14 | A real, reachable environment — not local-only |
+| Documentation — architecture doc, ADR-001, this proposal, the register | Design/Specification | 6-8 | The written deliverables Keystone asked for in the job posting |
+| QA — test harness setup, schema-lint CI check | Production-intent | 3-4 | Automated check that blocks a merge if RLS is missing from a tenant-scoped table |
+| Contingency (~12%) | — | 9-11 | |
+| **Phase 0 subtotal** | | **81-105h** | |
 
----
+### Katherine proof milestone (Specs 04-05, 07, 22-24, 33, 42, 73, 82)
 
-## 4. Gap, question, dependency, and assumptions register
-
-No requirement below is silently converted into a production rule.
-
-| ID | Type | Question, assumption, or decision | Needed from | Effect if unresolved |
-|---|---|---|---|---|
-| G-01 | TBD | Confirm that packet v3.0 is the complete controlling source and identify any superseding policy attachments. | Keystone | Traceability and downstream estimates remain conditional. |
-| G-02 | PROPOSED DECISION | Use Supabase/PostgreSQL/Auth/RLS for Phase 0 and Katherine. AWS RDS is evaluated but not selected. | Keystone technical reviewer | Katherine implementation cannot start until the selected architecture is accepted. |
-| G-03 | TBD | Keystone must supply or approve Katherine's fully synthetic identity, relationships, requirements, evidence, findings, and expected results. | Keystone operations/compliance | Golden-record implementation and acceptance tests are blocked. |
-| G-04 | TBD | Confirm the Keystone-owned GitHub organization, Supabase organization, AWS account, Google Cloud project, and OpenAI project to use. | Keystone IT | Repository and environment work cannot begin in client-controlled accounts. |
-| G-05 | TBD | Confirm Google Workspace domain, permitted accounts, SSO provisioning model, and administrator responsible for OAuth consent. | Keystone IT/security | Authentication configuration is blocked. |
-| G-06 | FUTURE DEPENDENCY | Decide whether Gmail and Drive use operator OAuth or domain-wide delegation, and provide scopes, retention, and reconciliation rules. | Keystone IT/security | Live integrations are excluded from Katherine and cannot yet be estimated reliably. |
-| G-07 | EXTERNAL UNKNOWN | ChildLink API, export, authentication, sandbox, data contract, limits, and contractual permissions. | ChildLink / Keystone | No production rule or integration estimate will be created. |
-| G-08 | EXTERNAL UNKNOWN | Elwyn API, export, authentication, sandbox, data contract, limits, and contractual permissions. | Elwyn / Keystone | No production rule or integration estimate will be created. |
-| G-09 | EXTERNAL UNKNOWN | PROMISe, HCSIS, and ITF Waiver workflows: API, manual evidence, lookup, reconciliation, or another mechanism. | Keystone / PA program authority | Enrollment and billing rules remain placeholders, not executable policy. |
-| G-10 | EXTERNAL UNKNOWN | Counties and joinders in scope, their participation relationships, rule variations, and ratifying authorities. | Keystone / county / joinder | Local-program rules and nine-provider regression coverage cannot be finalized. |
-| G-11 | TBD | Identify authoritative policy owners and approved policy/version sources for every readiness rule. | Keystone compliance | Deterministic rules cannot be activated without versioned ratification. |
-| G-12 | ASSUMPTION | Phase 0 and Katherine use synthetic data only; no PHI, child/family case data, SSNs, banking data, tax identifiers, or restricted financial data will be supplied. | Keystone confirmation | Any real or restricted data is a scope and security stop condition. |
-| G-13 | ASSUMPTION | Phase 0/Katherine uses a Keystone-controlled Supabase project and one Keystone-controlled AWS deployment for the Next.js service. Development remains local; Katherine has one hosted synthetic environment. | Keystone IT | A different hosting decision requires an updated architecture and cost model before authorization. |
-| G-13a | RESOLVED IN THIS REVISION | Redis, BullMQ, ElastiCache, and EC2/containerized Redis are not used for Phase 0/Katherine. Durable work uses Postgres-native scheduling and queues. | None | Removes the prior architecture/pricing conflict. |
-| G-14 | TBD | Ratify requester/reviewer/releaser separation, the minimum number of independent people, and the break-glass review window for a small team. | Keystone owner/compliance/security | Consequential action workflow cannot be finalized. |
-| G-15 | TBD | Confirm operator count, practitioner count, documents per practitioner, request volume, concurrency, storage, and growth assumptions. | Keystone operations | Pilot/production costs remain planning ranges. |
-| G-16 | TBD | Approve availability, RPO, RTO, backup retention, audit retention, evidence retention, deletion, and legal-hold requirements. | Keystone security/legal/operations | Production infrastructure and hardening cannot be fixed-price estimated. |
-| G-17 | TBD | Approve evidence taxonomy, accepted document types, version rules, duplicate rules, and required human-review evidence. | Keystone compliance | Evidence contracts remain structural rather than policy-complete. |
-| G-18 | TBD | Ratify which findings may cause an automatic operational restriction. Default proposal: detection and recalculation do not restrict operations unless an approved policy version explicitly says so. | Keystone compliance/operations | Automated restriction remains disabled. |
-| G-19 | TBD | Define employment, contractor, supervisor, capacity, assignment, enrollment, and contract semantics, including effective-date overlap rules. | Keystone operations/legal | Data structures can be built, but business validation rules remain inactive. |
-| G-20 | TBD | Select and approve malware scanning and OCR components, deployment boundary, data residency, and contractual terms. | Keystone security/legal | Katherine will use pre-sanitized synthetic fixtures; production file ingestion remains excluded. |
-| G-21 | TBD | Define AI evaluation dataset, model/version approval, accuracy measures, thresholds, drift monitoring, and change-approval owner. | Keystone | AI remains advisory with 100% affirmative human confirmation. |
-| G-22 | TBD | Confirm the agreed Upwork rate. Dollar illustrations in this proposal use $24/hour; milestone amounts must be written and funded in Upwork. | Keystone / Waqar | Hours remain valid, but dollar totals change if the rate differs. |
-
----
-
-## 5. Selected Phase 0/Katherine architecture
-
-### 5.1 Architecture decision
-
-The proposed baseline is **Supabase-first**, preserving the preferred stack and implementing authorization in PostgreSQL rather than simulating RLS in application middleware.
-
-| Layer | Selected component | Phase 0/Katherine use |
-|---|---|---|
-| Web application and server API | Next.js 16 App Router, TypeScript | One full-stack application; no separate Express API |
-| Runtime | Node.js 24.20.0 LTS | Pinned in CI, container, package engines, and developer setup |
-| Database | Supabase managed PostgreSQL | Canonical data, policies, audit, deterministic calculations |
-| Authentication | Supabase Auth with Google Workspace OAuth/OIDC | One identity/session issuer; mandatory MFA policy |
-| Authorization | PostgreSQL grants, RLS, scoped role tables, guarded database functions | Enforced beneath UI and API |
-| Evidence storage | Supabase Storage | Synthetic Katherine files only; production ingestion is excluded |
-| Scheduling | Supabase Cron / pg_cron | Inserts deterministic scheduled work |
-| Durable jobs | Supabase Queues / pgmq plus job execution records | Visibility timeout, idempotency, retries, archive/dead-letter, replay |
-| AI | OpenAI structured outputs through server-only typed tools | Advisory proposals only |
-| Application hosting | One containerized Next.js service on AWS ECS Fargate | No Vercel deployment and no separate frontend/backend services |
-| Secrets | AWS Secrets Manager and Supabase secret settings | No secrets in source, logs, prompts, or documentation |
-| CI/CD | GitHub Actions in Keystone's organization | Lint, typecheck, tests, migrations, image build, gated deployment |
-| Logs/metrics | Structured application logs and AWS CloudWatch; immutable business audit in PostgreSQL | Operational logs are not substitutes for audit records |
-
-### 5.2 Component flow
-
-~~~mermaid
-flowchart TD
-    U["Authorized operator"] --> APP["Next.js service on AWS ECS Fargate"]
-    APP --> AUTH["Supabase Auth: Google SSO and MFA"]
-    APP --> DB["Supabase PostgreSQL: RLS and guarded functions"]
-    APP --> STORE["Supabase Storage: synthetic evidence"]
-    DB --> JOBS["pg_cron and pgmq durable work"]
-    APP --> AI["Typed advisory AI gateway"]
-    AI --> MODEL["OpenAI structured output"]
-    DB --> AUDIT["Append-only audit events"]
-~~~
-
-Only the Next.js server may hold privileged credentials. Browser requests use the user's Supabase session so RLS remains active. A Supabase service-role key is never shipped to the browser and is not used for ordinary user requests.
-
-### 5.3 Runtime baseline and dependency policy
-
-The exact baseline for milestone kickoff is:
-
-- **Node.js 24.20.0 LTS**
-- **Next.js 16.x**, pinned to an exact patched version in the lockfile
-- **TypeScript 5.x**, pinned to an exact version compatible with the selected Next.js release
-- **PostgreSQL version supplied by the approved Supabase project**, captured in the environment manifest
-
-Version enforcement will use the container base-image digest, package-manager lockfile, package engine constraint, and CI version check.
-
-Dependency maintenance policy:
-
-1. Dependabot or Renovate opens routine dependency updates; versions never float in production.
-2. Critical exploitable vulnerabilities are triaged within one business day and patched or mitigated through a reviewed change as soon as a compatible fix is available.
-3. High-severity vulnerabilities are addressed within seven calendar days when a compatible fix exists.
-4. Routine compatible updates are grouped and tested monthly.
-5. Major framework/runtime upgrades use a separate branch, automated regression evidence, migration notes, and Keystone approval before production promotion.
-6. The Node LTS line is reviewed quarterly and upgraded with a target of at least 90 days before end of support.
-
-### 5.4 Components intentionally removed or deferred
-
-| Component | Phase 0/Katherine decision | Reason |
-|---|---|---|
-| Express API | Removed | Next.js server routes provide the small vertical-slice API. |
-| Firebase Auth/Admin | Removed | Supabase Auth is the only identity/session issuer. |
-| Custom access/refresh tokens | Removed | Supabase manages signed sessions and refresh-token rotation. |
-| Local passwords and bcrypt | Removed | Google SSO is the proposed login method. |
-| Socket.io | Deferred | No accepted Katherine requirement needs live sockets. |
-| Redis / ElastiCache / BullMQ | Removed | Postgres-native queueing is sufficient for this scope. |
-| node-cron / application-local scheduler | Removed | pg_cron schedules once at the database layer. |
-| Twilio / SendGrid | Excluded | No accepted Katherine SMS or outbound-email requirement. |
-| CloudFront / S3 evidence architecture | Removed | Supabase Storage is selected for this architecture. |
-| nginx | Removed | The managed AWS load-balancing path terminates HTTPS. |
-| Separate Vercel frontend | Removed | The Next.js application is one containerized full-stack service. |
-| Live Gmail/Drive | Deferred | They are limited evidence streams and follow Katherine. |
-
----
-
-## 6. Architecture Decision Record: Supabase versus self-managed AWS RDS
-
-**ADR-001 status:** Proposed; Keystone approval required  
-**Decision:** Select Supabase for Phase 0/Katherine. Revisit only if Phase 0 identifies a non-negotiable requirement Supabase cannot satisfy.
-
-The compared AWS alternative is one Next.js service on ECS Fargate, AWS RDS PostgreSQL with native RLS, Amazon Cognito federated to Google Workspace, S3, SQS/EventBridge Scheduler, Secrets Manager, and CloudWatch. It does not use homemade passwords or application-issued token families.
-
-| Criterion | Supabase PostgreSQL/Auth/RLS | AWS RDS PostgreSQL + custom identity/application stack |
-|---|---|---|
-| Security boundary | Native PostgreSQL RLS, Auth integration, Storage policies, managed patching | Native RLS is available, but identity claims, token lifecycle, policy helpers, storage controls, and operational integration must be built/configured |
-| Tenant isolation | Database policies can enforce organization, location, practitioner, scope, and data-class access on every query | Equally possible in PostgreSQL, but more implementation and test responsibility sits with the team |
-| Authentication | Managed Google OIDC, MFA, token rotation, session APIs | Requires AWS Cognito or another approved identity provider; a custom JWT/password system is not proposed |
-| Operational complexity | Lower for a small team; managed database, auth, storage, backups, queues, and cron | Higher: RDS networking, connection pooling, identity service, object storage, queues, schedulers, IAM, patching, backup validation, and observability |
-| Vendor dependency | Supabase APIs/Auth/Storage create moderate platform dependency; core data and RLS remain PostgreSQL | Greater AWS service dependency but more infrastructure control |
-| Prototype cost | Selected Katherine infrastructure: approximately $65–$145/month | Directional equivalent AWS-managed stack: approximately $110–$260/month before engineering, depending on network topology and backups |
-| Development effort | Faster for the Katherine slice | Estimated 25–40 additional setup/security hours before equivalent Katherine business behavior |
-| Long-term maintenance | Smaller platform surface; review limits, plan/SLA, and migration path | Larger DevOps/security burden; more control over topology and vendor selection |
-| Exit path | PostgreSQL schema/migrations are portable; Auth/Storage/Edge-specific parts require a migration plan | PostgreSQL remains portable; AWS-specific IAM, queues, storage, and deployment also require migration |
-| Best fit | Current preferred stack, small internal team, rapid controlled validation | Future case requiring private networking, a specific AWS compliance agreement, custom regional architecture, or unsupported Supabase capability |
-
-**Why selected:** Supabase satisfies Keystone's stated preference, gives real database-level RLS, removes the conflicting custom-auth design, and reduces the number of services that must be secured before Katherine can prove the domain model. The AWS RDS alternative is not rejected permanently; it is simply not authorized or priced as the selected Phase 0/Katherine build.
-
----
-
-## 7. Database-level authorization strategy
-
-### 7.1 Enforcement model
-
-Authorization is enforced with four layers:
-
-1. **PostgreSQL grants:** unauthenticated access is revoked; each table receives only the operations required by the authenticated role.
-2. **RLS policies:** separate SELECT, INSERT, UPDATE, and DELETE policies enforce row visibility and allowed resulting state.
-3. **Guarded database functions:** consequential mutations such as evidence acceptance, policy decisions, restrictions, suspension, release, and reinstatement occur through typed functions that re-check actor, scope, separation of duties, effective dates, and allowed transition.
-4. **Constraints and audit:** foreign keys, unique constraints, check constraints, optimistic version columns, and append-only audit events prevent partial or invalid writes.
-
-Application checks improve error messages but are not treated as the security boundary.
-
-### 7.2 Scoped access model
-
-The authorization graph is stored in:
-
-- app_user
-- role
-- permission
-- resource_scope
-- user_role_assignment
-
-A user may hold multiple roles, each with an effective-dated scope at platform, organization, location, practitioner, or security/audit level. Database helper functions such as can_read_practitioner, can_review_evidence, and can_release_provider resolve the current user through auth.uid(), verify the account is enabled, evaluate active assignments, and enforce the row's data class.
-
-Key rules:
-
-- Organization-scoped users cannot see another organization's relationship, evidence, finding, or readiness rows.
-- Location-scoped users cannot see other locations unless an active broader assignment permits it.
-- A practitioner linked to several organizations does not make organization-specific data visible across those organizations.
-- Suspected restricted files are visible only to specifically scoped security reviewers.
-- Technical system administrators have no business release permission by default.
-- Direct writes to consequential tables are revoked from browser roles.
-- Views are created with security-invoker behavior or protected equivalent and are included in policy tests.
-
-### 7.3 Required negative authorization tests
-
-Every protected resource must include allowed-path and denied-path tests. The minimum matrix includes:
-
-- anonymous user denied;
-- disabled user denied;
-- expired role assignment denied;
-- correct role but wrong organization denied;
-- correct organization but wrong location denied;
-- practitioner relationship outside its effective dates denied;
-- ordinary evidence reviewer denied access to quarantined data;
-- system administrator denied provider release;
-- requester denied review/release of the same case where separation applies;
-- stale session denied after role change or revocation;
-- direct REST/database mutation denied even when the UI hides the action;
-- INSERT or UPDATE that changes organization/location scope denied;
-- view/function path cannot bypass base-table RLS;
-- service-role key absent from browser bundles and ordinary request paths.
-
-Tests will run against local Supabase/PostgreSQL in CI using pgTAP/SQL policy tests plus TypeScript API integration tests.
-
----
-
-## 8. Canonical data model
-
-### 8.1 Modeling principles
-
-- A **practitioner** is a person, not an employment record and not a single provider status.
-- Organization, location, employment/contracting, supervision, discipline, specialty, county/joinder participation, enrollment, and assignments are separate effective-dated relationships.
-- Evidence is immutable by version. One evidence version may support several requirement instances through a many-to-many link.
-- Requirements point to a versioned policy source and applicability rule.
-- Findings, exceptions, waivers, and decisions are separate records with actors and rationale.
-- Readiness dimensions are calculated separately; operational restrictions, suspensions, assignments, and human release decisions are not encoded as one status.
-
-### 8.2 Entity catalog
-
-| Domain | Canonical entities |
-|---|---|
-| Organization and place | organization, location, county, joinder, local_program, program_participation |
-| Practitioner relationships | practitioner, organization_practitioner_relationship, relationship_location, practitioner_supervision |
-| Professional attributes | discipline, specialty, practitioner_discipline, practitioner_specialty |
-| Operational dimensions | enrollment, contract_record, clearance, training_completion, billing_configuration, capacity_record, assignment, local_program_approval |
-| Policy and requirements | policy_source, policy_version, requirement_definition, requirement_version, applicability_rule, practitioner_requirement |
-| Evidence | evidence_item, evidence_version, evidence_requirement_link, evidence_source_reference, evidence_review |
-| Control records | finding, exception_request, waiver, decision, operational_restriction, suspension, release_decision |
-| Readiness | readiness_dimension, readiness_assessment, readiness_recalculation |
-| Access and audit | app_user, role, permission, resource_scope, user_role_assignment, audit_event |
-| AI advisory records | ai_run, ai_proposal, human_confirmation |
-
-### 8.3 Practitioner and organizational relationships
-
-~~~mermaid
-erDiagram
-    ORGANIZATION ||--o{ LOCATION : contains
-    PRACTITIONER ||--o{ ORG_PRACTITIONER_RELATIONSHIP : works_through
-    ORGANIZATION ||--o{ ORG_PRACTITIONER_RELATIONSHIP : engages
-    ORG_PRACTITIONER_RELATIONSHIP ||--o{ RELATIONSHIP_LOCATION : operates_at
-    LOCATION ||--o{ RELATIONSHIP_LOCATION : scopes
-    ORG_PRACTITIONER_RELATIONSHIP ||--o{ PRACTITIONER_SUPERVISION : supervisee
-    PRACTITIONER ||--o{ PRACTITIONER_SUPERVISION : supervisor
-    PRACTITIONER ||--o{ PRACTITIONER_DISCIPLINE : has
-    DISCIPLINE ||--o{ PRACTITIONER_DISCIPLINE : classifies
-    PRACTITIONER ||--o{ PRACTITIONER_SPECIALTY : has
-    SPECIALTY ||--o{ PRACTITIONER_SPECIALTY : classifies
-    COUNTY ||--o{ PROGRAM_PARTICIPATION : governs
-    JOINDER ||--o{ PROGRAM_PARTICIPATION : governs
-    ORG_PRACTITIONER_RELATIONSHIP ||--o{ PROGRAM_PARTICIPATION : participates
-~~~
-
-Every relationship above includes valid_from, valid_to, source, recorded_by, and version fields. organization_practitioner_relationship includes relationship_type values such as employee or contractor; the allowed values and overlap rules require Keystone ratification under G-19.
-
-### 8.4 Requirements, evidence, and policy
-
-~~~mermaid
-erDiagram
-    POLICY_SOURCE ||--o{ POLICY_VERSION : versions
-    POLICY_VERSION ||--o{ REQUIREMENT_VERSION : authorizes
-    REQUIREMENT_DEFINITION ||--o{ REQUIREMENT_VERSION : versions
-    REQUIREMENT_VERSION ||--o{ APPLICABILITY_RULE : determines
-    PRACTITIONER ||--o{ PRACTITIONER_REQUIREMENT : receives
-    REQUIREMENT_VERSION ||--o{ PRACTITIONER_REQUIREMENT : instantiates
-    EVIDENCE_ITEM ||--o{ EVIDENCE_VERSION : versions
-    EVIDENCE_VERSION ||--o{ EVIDENCE_REQUIREMENT_LINK : supports
-    PRACTITIONER_REQUIREMENT ||--o{ EVIDENCE_REQUIREMENT_LINK : supported_by
-    EVIDENCE_VERSION ||--o{ EVIDENCE_REVIEW : reviewed
-    PRACTITIONER_REQUIREMENT ||--o{ FINDING : produces
-    FINDING ||--o{ EXCEPTION_REQUEST : may_request
-    EXCEPTION_REQUEST ||--o| WAIVER : may_grant
-    FINDING ||--o{ DECISION : resolved_by
-~~~
-
-An evidence link does not equal acceptance. A human evidence_review must affirm an AI-proposed classification before that evidence can satisfy a V1 release prerequisite.
-
-### 8.5 Readiness and operational control
-
-~~~mermaid
-erDiagram
-    PRACTITIONER ||--o{ READINESS_ASSESSMENT : has
-    READINESS_DIMENSION ||--o{ READINESS_ASSESSMENT : separates
-    READINESS_ASSESSMENT ||--o{ READINESS_RECALCULATION : computed_by
-    PRACTITIONER ||--o{ ENROLLMENT : has
-    PRACTITIONER ||--o{ CONTRACT_RECORD : has
-    PRACTITIONER ||--o{ CLEARANCE : has
-    PRACTITIONER ||--o{ TRAINING_COMPLETION : has
-    PRACTITIONER ||--o{ BILLING_CONFIGURATION : has
-    PRACTITIONER ||--o{ CAPACITY_RECORD : has
-    PRACTITIONER ||--o{ ASSIGNMENT : receives
-    PRACTITIONER ||--o{ LOCAL_PROGRAM_APPROVAL : has
-    PRACTITIONER ||--o{ OPERATIONAL_RESTRICTION : may_receive
-    PRACTITIONER ||--o{ SUSPENSION : may_receive
-    PRACTITIONER ||--o{ RELEASE_DECISION : human_controls
-~~~
-
----
-
-## 9. Readiness dimensions
-
-There is no single global provider status column. The operator summary is a deterministic projection over separate records.
-
-| Dimension | Example deterministic inputs | Example states | Human-controlled element |
+| Category | Tier | Hours | What Keystone receives |
 |---|---|---|---|
-| Qualification | discipline, specialty, education/credential requirements | unknown, incomplete, in_review, satisfied, not_applicable | acceptance of contested evidence or exception |
-| Clearance | clearance requirements, issue/expiration dates | unknown, incomplete, in_review, satisfied, expired | exception/waiver decision |
-| Training | required training and completion dates | unknown, incomplete, in_review, satisfied, expired | evidence acceptance |
-| Enrollment | program enrollment records and effective dates | unknown, pending, active, lapsed, not_applicable | external/manual confirmation where no authoritative integration exists |
-| Contracting | organization relationship and contract record | unknown, pending, active, ended | contract approval outside AI |
-| Billing configuration | approved deterministic configuration checks | unknown, incomplete, configured, blocked | business confirmation |
-| Local-program approval | county/joinder/program records | unknown, pending, approved, denied, not_applicable | authoritative local decision |
-| Capacity | capacity record, effective dates, limits | unknown, available, limited, unavailable | operator-entered approved capacity |
-| Assignment readiness | all assignment-specific requirements | unknown, incomplete, ready, restricted | assignment authorization |
-| Human release authority | signed release/reinstatement decision | not_requested, pending, released, denied, revoked | always human |
+| Katherine fixture loader + seed | Prototype (rebuilt if content changes, per G-08) | 4-5 | The immutable, versioned fixture (Section 8) |
+| Requirement/evidence/status engine — full per-dimension recalculation (Section 5.2) | Production-intent | 16-20 | End-to-end: intake → checklist → evidence → Detection/Recalculation/Restriction/Human-review/Release, all six concepts from client point 9 working, not simulated |
+| AI agent tool contracts — classify/extract/draft/summarize (Section 6) | Production-intent | 10-13 | Four typed, schema-validated, audited tools; `flag_missing_requirement` is deterministic code, not a tool (Section 6.4) |
+| Restricted-data pipeline, steps 7-11 (AI processing through evidence acceptance, Section 11.1) | Production-intent | 6-8 | The confirmation-gated evidence-acceptance flow from client point 10 |
+| Requester/reviewer/releaser enforcement + compensating co-sign (Section 7.3) | Production-intent | 4-5 | The hard-block-plus-co-sign mechanism proposed to resolve G-14 |
+| BullMQ job infrastructure — idempotency, concurrency limits, retry, dead-letter, replay, reconciliation (Section 2.2, client point 16) | Production-intent | 8-10 | Safe under multiple running instances from day one, not retrofitted later |
+| Audit log implementation | Production-intent | 4-5 | Queryable `AUDIT_EVENT` rows, not just log files |
+| Frontend — login, practitioner detail, checklist, evidence view + confirmation UI, ten-dimension readiness dashboard, release/reinstatement decision screen (with step-up reauth), audit log timeline, quarantine review queue (~8 screens); shadcn/Tailwind components, no Figma pass (Section 2.2a, client query answered) | Prototype UI over production-intent API contracts | 30-38 | A working demo of the job posting's own "Login → provider record → checklist → status engine → audit log" vertical slice — visual polish is explicitly deferred to Phase 4's UX pass (Spec 11) |
+| QA — automated regression fixture, incl. negative RLS/cross-org scenario (Spec 24, 73) | Production-intent | 8-10 | Deterministic re-run producing semantically equivalent output, every time |
+| External dependency — OpenAI integration + prompt/schema iteration | Production-intent | 5-7 | |
+| Documentation — Katherine plan, demonstration script | Design/Specification | 3-4 | |
+| Contingency (~12%) | — | 12-15 | |
+| **Katherine subtotal** | | **110-140h** | |
 
-The summary response returns each dimension, reason codes, open finding IDs, policy version, calculation time, and active operational controls. It may display “blocked” to an operator, but that label is a summary—not an editable master status and not a substitute for the underlying dimension and human decision records.
-
----
-
-## 10. Detection, calculation, restriction, review, and release
-
-| Stage | Trigger | System action | May AI control it? | Human/policy gate |
-|---|---|---|---|---|
-| 1. Detection | Expiration, missing evidence, conflict, failed reconciliation | Create or update a finding with stable reason code and evidence references | No; deterministic detection. AI may summarize. | None |
-| 2. Recalculation | Relevant data or policy version changes | Recompute only affected readiness dimensions and store inputs/version | No | None |
-| 3. Operational restriction evaluation | A finding matches a ratified restriction rule | Create a proposed or automatic restriction according to the exact approved policy version | No | Automatic only if Keystone has expressly ratified that rule |
-| 4. Suspension | Authorized suspension request/decision | Record suspension with scope, reason, effective period, and audit event | No | Authorized human decision |
-| 5. Human review | Finding, exception, evidence proposal, release request | Queue review; record reviewer evidence and decision | AI may provide advisory summary only | Affirmative human action |
-| 6. Release or reinstatement | All deterministic prerequisites satisfied and an authorized request exists | Guarded database function records release/reinstatement | No | Distinct authorized human releaser with recent MFA |
-
-Example: an expired document automatically creates a finding and recalculates the relevant dimension. It does **not** automatically restrict operations unless Keystone has approved a versioned policy that explicitly requires that restriction. Otherwise it enters human review.
-
-Invalid transitions return a stable reason code, write no partial business state, and create a denied-attempt audit event where appropriate.
+**Combined Phase 0 + Katherine range: ~191-245 hours.** We recommend billing Phase 0 and Katherine as two separately authorized sub-milestones (matches Spec 20/83's per-milestone gate rule, and client point 19) rather than one lump sum, so the client can stop after Phase 0 if desired. Point 19's full milestone breakdown (deliverables/exclusions/dependencies/tests/acceptance/payment-gate/go-no-go per milestone) is addressed separately once we get to that item.
 
 ---
 
-## 11. Deterministic, AI-advisory, and human-controlled functions
+## 4. Proposed Canonical Data Model
 
-| Function | Deterministic code | AI advisory | Affirmative human control |
-|---|---:|---:|---:|
-| Requirement applicability | Yes | May explain result | Ratifies policy/rule version |
-| Missing-requirement detection | Yes | May draft follow-up | May resolve exception |
-| Expiration and effective-date calculation | Yes | May summarize impact | Approves exception/waiver |
-| Duplicate/idempotency detection | Yes | No | Reviews unresolved conflict |
-| Readiness-dimension calculation | Yes | May explain reason codes | Ratifies rules |
-| Permissions and resource scopes | Yes, database enforced | No | Assigns approved roles |
-| Transition guards | Yes | No | Executes consequential transition where required |
-| Candidate document classification | No | Yes | Must confirm before evidence can satisfy V1 prerequisite |
-| Candidate metadata extraction | Deterministic validation of types/ranges | Yes | Confirms controlling values |
-| Evidence-conflict summary | No | Yes | Resolves conflict |
-| Follow-up draft | Deterministic recipient/request deduplication | Yes | Reviews and sends |
-| Restriction, suspension, release, reinstatement | Guarded deterministic execution | Cannot request or execute independently | Authorized decision required except a separately ratified automatic restriction rule |
+**Revision note:** the previous version of this section collapsed several distinct real-world relationships into single foreign keys (one organization per practitioner, one location, one global readiness status). Keystone correctly flagged this as insufficient. This revision replaces every one-to-one assumption with the many-to-many, effective-dated, and multi-dimensional structure the PA EI domain actually requires. It reuses two patterns validated in the developer's own production schema library: (1) auth/actor identity kept separate from business-entity tables, with soft-delete and an immutable, generic audit-event shape; (2) narrow join tables carrying their own lifecycle fields rather than bare many-to-many pivots — both carried forward here and extended with the effective-dating this domain needs.
 
-AI output is never a source of authorization. Confidence is display/evaluation metadata, not an approval threshold.
+### 4.1 Design rules this model follows
 
-Any future reduction from 100% affirmative human confirmation is outside V1. It would require measured performance on a Keystone-approved labeled dataset, per-document and per-field thresholds, false-positive/false-negative analysis, drift monitoring, rollback criteria, versioned evaluation evidence, and a separate written Keystone decision and milestone.
+1. **No relationship is assumed to be one-to-one** unless the domain guarantees it (e.g., one `Decision` has exactly one deciding user). Every organization/location/specialty/county link is a join table, not a foreign key on the practitioner.
+2. **Every relationship that can change over time carries `effective_from` / `effective_to`.** History is queried, never overwritten.
+3. **Evidence and requirement rules are versioned, never edited in place.** A new version supersedes the old one via a self-referencing `supersedes_*_id`; nothing is deleted.
+4. **Readiness is ten separate, independently-tracked dimensions, not one field.** A single `ReadinessSummaryView` rolls them up for operator display only — it is a read model, not a source of truth, and nothing writes to it directly.
+5. **Cascade-delete is used only for records that should genuinely disappear with their owner** (e.g., a revoked user-role assignment). Business/compliance records (evidence, findings, decisions, audit events) are never hard-deleted — matches the packet's own "deletion never destroys audit history" rule (Spec 09) and is why `AuditEvent.actor_user_id` uses `ON DELETE SET NULL`, never `CASCADE`.
+6. **Every tenant-scoped table carries `organization_id` (directly or via its parent)** so the RLS policies proposed in Section 2.5 have a consistent column to key off.
+7. **No AI-derived classification satisfies a release prerequisite by itself, regardless of confidence.** `EVIDENCE_RECORD.confirmed_by_user_id` must be non-null before that evidence counts toward any requirement — there is no confidence threshold in V1 that skips this. See Section 6.2.
 
----
+**Terminology note:** the packet generally says "provider" for the individual person being onboarded. This model names that entity `PRACTITIONER` instead, to keep it unambiguous from `ORGANIZATION` (the agency) now that a practitioner can be affiliated with multiple organizations — the packet itself sometimes uses "provider" loosely for either the person or the agency. We'd like to confirm this mapping (`PRACTITIONER` = packet's "provider") is acceptable, or adopt Keystone's preferred term, as part of the canonical terminology work in Spec 79.
 
-## 12. Restricted-data pipeline
+### 4.2 Entity-relationship diagram
 
-The pre-model screen and post-model confidence are separate controls.
+```mermaid
+erDiagram
+    %% --- Identity & access (internal operators only; practitioners are not system users in V1) ---
+    USER_ACCOUNT ||--o{ USER_ROLE_ASSIGNMENT : has
+    ROLE ||--o{ USER_ROLE_ASSIGNMENT : "granted via"
 
-| Step | Processing and control | Result on failure |
-|---:|---|---|
-| 1 | Receive file into a non-AI intake/quarantine area; assign correlation ID and content hash | Reject malformed upload; log without sensitive content |
-| 2 | Malware scan with an approved component | Quarantine; no extraction or AI call |
-| 3 | Extract text/OCR within the approved processing boundary | Quarantine on failure or unsupported type |
-| 4 | Run deterministic restricted-data screening over filename, metadata, extracted text, and detector results | Quarantine on match, ambiguity, or incomplete scan |
-| 5 | Security reviewer handles quarantine under restricted scope | No model access |
-| 6 | Construct an allowlisted prompt from permitted fields only; exclude raw unrestricted records and unnecessary identifiers | Fail closed if allowlist contract is not satisfied |
-| 7 | Call the approved AI model through one typed server-side tool | No direct database state transition |
-| 8 | Validate response against strict JSON Schema, enums, date/range rules, and cited source spans | Reject invalid response; retain diagnostic metadata only |
-| 9 | Store confidence as advisory model output after the call | Confidence never overrides screening or human review |
-| 10 | Human reviewer affirmatively confirms, edits, or rejects the proposal | Unconfirmed proposal cannot satisfy a prerequisite |
-| 11 | Guarded evidence-acceptance function links the confirmed evidence version to requirements and triggers deterministic recalculation | Deny if role, scope, SoD, version, or policy guard fails |
+    %% --- Organizational structure ---
+    ORGANIZATION ||--o{ LOCATION : has
+    LOCATION }o--|| COUNTY : "located in"
+    ORGANIZATION ||--o{ ORG_COUNTY_PARTICIPATION : participates
+    COUNTY ||--o{ ORG_COUNTY_PARTICIPATION : hosts
+    JOINDER ||--o{ ORG_COUNTY_PARTICIPATION : via
 
-For Katherine, all files are synthetic and pre-sanitized. A synthetic restricted-data canary will test that the pipeline quarantines before the model call. Production malware/OCR tooling is excluded until G-20 is resolved.
+    %% --- Practitioner relationships (all many-to-many, all effective-dated) ---
+    PRACTITIONER ||--o{ PRACT_ORG_AFFILIATION : "affiliated via"
+    ORGANIZATION ||--o{ PRACT_ORG_AFFILIATION : affiliates
+    PRACTITIONER ||--o{ PRACT_LOCATION_ASSIGNMENT : "assigned via"
+    LOCATION ||--o{ PRACT_LOCATION_ASSIGNMENT : hosts
+    PRACTITIONER ||--o{ SUPERVISION_RELATIONSHIP : "supervisor in"
+    PRACTITIONER ||--o{ SUPERVISION_RELATIONSHIP : "supervisee in"
+    PRACTITIONER ||--o{ PRACT_SPECIALTY : holds
+    SPECIALTY ||--o{ PRACT_SPECIALTY : "assigned via"
+    DISCIPLINE ||--o{ PRACT_SPECIALTY : scopes
+    DISCIPLINE ||--o{ REQUIREMENT_DEFINITION : "applies to"
 
----
+    %% --- Requirements, evidence, exceptions (versioned, many-to-many) ---
+    REQUIREMENT_DEFINITION ||--o{ REQUIREMENT_DEFINITION : supersedes
+    REQUIREMENT_DEFINITION ||--o{ REQUIREMENT_APPLICABILITY : "applies via"
+    PRACTITIONER ||--o{ REQUIREMENT_APPLICABILITY : requires
+    REQUIREMENT_APPLICABILITY ||--o{ WAIVER : "may be waived by"
+    REQUIREMENT_APPLICABILITY ||--o{ EVIDENCE_REQ_LINK : "satisfied via"
+    EVIDENCE_RECORD ||--o{ EVIDENCE_REQ_LINK : "applies to"
+    EVIDENCE_RECORD ||--o{ EVIDENCE_RECORD : supersedes
+    EVIDENCE_RECORD ||--o{ EVIDENCE_SOURCE_REF : "sourced from"
 
-## 13. Proposed API, AI-tool, and structured-response contracts
+    %% --- Findings, decisions, AI proposals ---
+    PRACTITIONER ||--o{ FINDING : has
+    FINDING ||--o{ DECISION : "resolved by"
+    USER_ACCOUNT ||--o{ DECISION : makes
+    AI_TOOL_CALL_LOG ||--o{ FINDING : proposes
+    PRACTITIONER ||--o{ AI_TOOL_CALL_LOG : "subject of"
 
-All contracts are versioned, server-validated, and documented through OpenAPI and JSON Schema. Mutating operations require an authenticated actor, explicit authorization, a correlation ID, and an Idempotency-Key. Consequential mutations also require a current entity version and recent AAL2 authentication.
+    %% --- Restriction, suspension, reinstatement (client point 9 — distinct from detection/recalculation/release) ---
+    RESTRICTION_POLICY ||--o{ OPERATIONAL_RESTRICTION : authorizes
+    FINDING ||--o{ OPERATIONAL_RESTRICTION : "may trigger"
+    PRACTITIONER ||--o{ OPERATIONAL_RESTRICTION : "restricted by"
+    PRACTITIONER ||--o{ SUSPENSION : "suspended by"
+    DECISION ||--o{ SUSPENSION : authorizes
+    DECISION ||--o{ OPERATIONAL_RESTRICTION : "may override"
 
-### 13.1 API surface for the Katherine slice
+    %% --- Readiness dimensions: separate tables, never collapsed (client point 8) ---
+    PRACTITIONER ||--o| QUALIFICATION_STATUS : has
+    PRACTITIONER ||--o| CLEARANCE_STATUS : has
+    PRACTITIONER ||--o| TRAINING_STATUS : has
+    PRACTITIONER ||--o| ENROLLMENT_STATUS : has
+    ORGANIZATION ||--o| CONTRACT_STATUS : has
+    ORGANIZATION ||--o| BILLING_CONFIG_STATUS : has
+    ORG_COUNTY_PARTICIPATION ||--o| LOCAL_PROGRAM_APPROVAL_STATUS : has
+    PRACTITIONER ||--o| CAPACITY_STATUS : has
+    PRACTITIONER ||--o| ASSIGNMENT_READINESS_STATUS : has
+    PRACTITIONER ||--o| RELEASE_READINESS : has
+    DECISION ||--o{ RELEASE_READINESS : gates
+    PRACTITIONER ||--o| READINESS_SUMMARY_VIEW : "read model only"
 
-| Method and route | Purpose | Authorization and control |
-|---|---|---|
-| POST /api/v1/practitioners | Create synthetic practitioner | Onboarding role; organization scope; idempotent |
-| GET /api/v1/practitioners/:id | Read practitioner and scoped relationships | RLS-filtered; no cross-organization data |
-| POST /api/v1/practitioners/:id/relationships | Add effective-dated organization/location relationship | Onboarding role; overlap validation; optimistic version |
-| GET /api/v1/practitioners/:id/requirements | Return deterministic requirement instances | RLS-filtered; includes policy/reason codes |
-| POST /api/v1/practitioners/:id/readiness/recalculate | Recalculate affected dimensions | Deterministic function; never releases or restricts by itself |
-| POST /api/v1/evidence | Register a synthetic evidence item/version | Onboarding/evidence role; content hash deduplication |
-| POST /api/v1/evidence/:versionId/ai-proposals | Request advisory classification | Approved evidence role; restricted-data gate must have passed |
-| POST /api/v1/evidence/:versionId/confirm | Affirm, edit, or reject AI proposal | Independent evidence reviewer; human action and rationale required |
-| POST /api/v1/findings/:id/decisions | Record finding/exception decision | Compliance decision role; typed decision and policy version |
-| POST /api/v1/release-requests | Request release/reinstatement review | Scoped requester; cannot self-release |
-| POST /api/v1/release-decisions | Release, deny, revoke, or reinstate | Release authority; SoD, current policy, no blocking prerequisites, recent AAL2 |
-| GET /api/v1/practitioners/:id/readiness | Return multi-dimensional summary | Deterministic read; RLS-filtered |
-| GET /api/v1/practitioners/:id/audit-events | Return scoped business audit history | Auditor or appropriately scoped business role |
+    %% --- Audit (every table above writes here; edge omitted for readability) ---
 
-Stable errors use HTTP status plus a machine-readable code such as CROSS_SCOPE_DENIED, STALE_VERSION, POLICY_NOT_RATIFIED, SOD_VIOLATION, MFA_REAUTH_REQUIRED, BLOCKING_FINDING_OPEN, RESTRICTED_DATA_QUARANTINED, or IDEMPOTENT_REPLAY.
-
-### 13.2 AI-agent tool contracts
-
-| Tool | Allowlisted input | Structured output | Permitted effect |
-|---|---|---|---|
-| propose_evidence_classification | evidence_version_id, sanitized text blocks, page/span coordinates, approved taxonomy version | candidate type, candidate fields, source spans, confidence, warnings | Create ai_proposal only |
-| propose_evidence_metadata | confirmed candidate type, sanitized spans, allowed field schema | proposed dates/identifiers with source spans and confidence | Append proposal fields only |
-| summarize_evidence_conflict | conflict reason codes and allowlisted evidence summaries | neutral summary, cited inputs, unresolved questions | Append advisory summary |
-| draft_consolidated_followup | deterministic missing-item list, approved recipient context, prior-request keys | subject/body draft, referenced requirement IDs | Save draft only; cannot send |
-| explain_readiness | deterministic readiness response and reason-code glossary | plain-language explanation with dimension references | Read-only explanation |
-| get_readiness_summary | practitioner ID and actor scope | deterministic structured readiness response | Read-only database function; no model reasoning |
-
-There is deliberately no AI tool for deciding applicability, finding missing requirements, calculating expiration, changing readiness, granting a waiver, applying a restriction, suspending, releasing, or reinstating.
-
-### 13.3 Structured AI proposal
-
-~~~json
-{
-  "schemaVersion": "1.0",
-  "proposalId": "uuid",
-  "evidenceVersionId": "uuid",
-  "taxonomyVersion": "2026-08-approved",
-  "candidateDocumentType": "clearance",
-  "candidateFields": [
-    {
-      "name": "expires_on",
-      "value": "2027-01-31",
-      "sourceSpans": [
-        {
-          "page": 1,
-          "start": 104,
-          "end": 114
-        }
-      ],
-      "confidence": 0.91
+    USER_ACCOUNT {
+        uuid id PK
+        string email
+        boolean is_active
+        timestamptz deleted_at "soft delete only, never hard-deleted"
     }
-  ],
-  "warnings": [],
-  "humanConfirmationRequired": true
+    USER_ROLE_ASSIGNMENT {
+        uuid id PK
+        uuid user_id FK
+        uuid role_id FK
+        string scope_type "GLOBAL | ORGANIZATION | COUNTY | LOCATION"
+        uuid scope_id FK "nullable when scope_type=GLOBAL"
+    }
+    ORGANIZATION {
+        uuid id PK
+        string legal_name
+        string keystone_org_ref
+    }
+    LOCATION {
+        uuid id PK
+        uuid organization_id FK
+        uuid county_id FK
+        string address
+    }
+    COUNTY {
+        uuid id PK
+        string name
+        string fips_code
+    }
+    JOINDER {
+        uuid id PK
+        string name
+    }
+    ORG_COUNTY_PARTICIPATION {
+        uuid id PK
+        uuid organization_id FK
+        uuid county_id FK
+        uuid joinder_id FK "nullable"
+        date effective_from
+        date effective_to "nullable = current"
+    }
+    PRACTITIONER {
+        uuid id PK
+        string display_name
+        note "no organization_id or location_id here — see affiliation/assignment tables"
+    }
+    PRACT_ORG_AFFILIATION {
+        uuid id PK
+        uuid practitioner_id FK
+        uuid organization_id FK
+        string employment_type "EMPLOYEE | CONTRACTOR"
+        date effective_from
+        date effective_to "nullable = current"
+    }
+    PRACT_LOCATION_ASSIGNMENT {
+        uuid id PK
+        uuid practitioner_id FK
+        uuid location_id FK
+        date effective_from
+        date effective_to "nullable = current"
+    }
+    SUPERVISION_RELATIONSHIP {
+        uuid id PK
+        uuid supervisor_practitioner_id FK
+        uuid supervisee_practitioner_id FK
+        uuid discipline_id FK "nullable"
+        date effective_from
+        date effective_to "nullable = current"
+    }
+    PRACT_SPECIALTY {
+        uuid id PK
+        uuid practitioner_id FK
+        uuid specialty_id FK
+        uuid discipline_id FK
+        date effective_from
+        date effective_to "nullable = current"
+    }
+    REQUIREMENT_DEFINITION {
+        uuid id PK
+        string code
+        uuid discipline_id FK
+        string source_citation
+        string rule_version
+        uuid supersedes_requirement_id FK "nullable, self-ref"
+    }
+    REQUIREMENT_APPLICABILITY {
+        uuid id PK
+        uuid practitioner_id FK
+        uuid requirement_definition_id FK
+        string status "applicable | waived | not_applicable"
+    }
+    WAIVER {
+        uuid id PK
+        uuid requirement_applicability_id FK
+        string reason
+        uuid approved_by_user_id FK
+        date effective_from
+        date expires_on "nullable"
+    }
+    EVIDENCE_RECORD {
+        uuid id PK
+        string storage_uri "s3 ref, versioned bucket"
+        string data_class "standard | restricted"
+        date expires_on "nullable"
+        string status "pending | valid | expired | conflicted | quarantined"
+        uuid supersedes_evidence_id FK "nullable, self-ref version chain"
+        string ai_classification "AI-proposed only — advisory, never authoritative on its own"
+        float ai_confidence "informational/triage only — never a gate that skips human confirmation"
+        uuid confirmed_by_user_id FK "nullable — NULL means not yet usable toward any release prerequisite, regardless of ai_confidence"
+        timestamptz confirmed_at "nullable"
+    }
+    EVIDENCE_REQ_LINK {
+        uuid evidence_record_id FK
+        uuid requirement_applicability_id FK
+    }
+    EVIDENCE_SOURCE_REF {
+        uuid id PK
+        uuid evidence_record_id FK
+        string source_system "gmail | drive | manual_upload"
+        string content_hash
+    }
+    FINDING {
+        uuid id PK
+        uuid practitioner_id FK
+        string finding_type
+        string status
+        uuid raised_by_ai_tool_call_id FK "nullable"
+    }
+    DECISION {
+        uuid id PK
+        uuid finding_id FK "nullable"
+        uuid decided_by_user_id FK
+        string decision_type "RELEASE | REJECT | WAIVER_APPROVAL | SUSPENSION | REINSTATEMENT | RESTRICTION_OVERRIDE"
+        string rationale
+    }
+    RESTRICTION_POLICY {
+        uuid id PK
+        string dimension "which of the 10 readiness dimensions this rule governs"
+        string requirement_type "nullable, narrows to a specific requirement"
+        boolean auto_restrict "true = a non-compliant recalculation restricts automatically; false = routes to Human Review instead"
+        string ratified_decision_ref "DEC-xxx, Spec 43 Policy Decision and Ratification Register — required before auto_restrict=true can go live"
+    }
+    OPERATIONAL_RESTRICTION {
+        uuid id PK
+        uuid practitioner_id FK
+        uuid triggered_by_finding_id FK "nullable"
+        uuid authorized_by_policy_id FK "nullable if manually applied by a human Decision instead"
+        uuid overridden_by_decision_id FK "nullable"
+        string restriction_type "e.g. no_new_assignment, service_hold"
+        string status "active | lifted"
+        date effective_from
+        date effective_to "nullable = ongoing"
+    }
+    SUSPENSION {
+        uuid id PK
+        uuid practitioner_id FK
+        uuid authorized_by_decision_id FK "never nullable — suspension is always human-decided, Spec 41/62"
+        string reason
+        date effective_from
+        date effective_to "nullable = ongoing, set on reinstatement"
+        uuid reinstated_by_decision_id FK "nullable"
+    }
+    AI_TOOL_CALL_LOG {
+        uuid id PK
+        string tool_name
+        uuid practitioner_id FK
+        string input_hash
+        string output_hash
+        string result_status
+    }
+    RELEASE_READINESS {
+        uuid id PK
+        uuid practitioner_id FK
+        string status
+        uuid decision_id FK "the human gate — only source of RELEASED"
+    }
+    READINESS_SUMMARY_VIEW {
+        uuid practitioner_id PK
+        string qualification_display
+        string clearance_display
+        string training_display
+        string enrollment_display
+        string capacity_display
+        string assignment_display
+        string release_display
+        note "computed/cached for operator dashboard only — never written to directly, never used as an authorization source"
+    }
+```
+
+**Note on the readiness-dimension tables:** `QUALIFICATION_STATUS`, `CLEARANCE_STATUS`, `TRAINING_STATUS`, `ENROLLMENT_STATUS`, `CONTRACT_STATUS`, `BILLING_CONFIG_STATUS`, `LOCAL_PROGRAM_APPROVAL_STATUS`, `CAPACITY_STATUS`, and `ASSIGNMENT_READINESS_STATUS` all follow the same shape (id, owning-entity FK, `status`, `effective_from`, `source_of_truth_ref`) — shown once here rather than nine times for readability:
+
+```
+{DIMENSION}_STATUS {
+    uuid id PK
+    uuid owning_entity_id FK   -- practitioner_id, organization_id, or org_county_participation_id depending on dimension
+    string status              -- dimension-specific enum, ratified per Spec 43
+    date effective_from
+    string source_of_truth_ref -- what computed or authorized this value (rule engine run, external system, or Decision id)
 }
-~~~
+```
 
-The server rejects unknown properties, invalid enums, impossible dates, missing source spans, unapproved taxonomy versions, and outputs that exceed the allowlisted schema. humanConfirmationRequired is fixed to true for any V1 classification used toward a release prerequisite.
+`RELEASE_READINESS` is the one dimension that is structurally different from the other nine: it can only reach a released status through a `decision_id` pointing at a human-made `DECISION` row — there is no `source_of_truth_ref` path that lets a rule engine or AI tool call set it directly. This is the schema-level enforcement of "human-controlled release, not just a documented rule" (packet Controlling Boundary, Spec 00).
 
-### 13.4 Deterministic readiness response
+### 4.3 Traceability — how this model addresses each requirement Keystone raised
 
-~~~json
+| Keystone requirement (point 7) | Addressed by |
+|---|---|
+| Practitioner working through multiple organizations | `PRACT_ORG_AFFILIATION` (many-to-many, not a FK on `PRACTITIONER`) |
+| Multiple locations | `PRACT_LOCATION_ASSIGNMENT` (many-to-many) |
+| Employment and contractor relationships | `PRACT_ORG_AFFILIATION.employment_type` |
+| Supervisor relationships | `SUPERVISION_RELATIONSHIP` (practitioner-to-practitioner, discipline-scoped) |
+| Multiple specialties and disciplines | `PRACT_SPECIALTY` (many-to-many, discipline-scoped) |
+| County and joinder participation | `ORG_COUNTY_PARTICIPATION` (org × county × joinder, many-to-many) |
+| Effective-dated relationships | Every join table above carries `effective_from`/`effective_to` |
+| Evidence versions | `EVIDENCE_RECORD.supersedes_evidence_id` self-referencing chain; storage stays on a versioned S3 bucket |
+| One evidence item satisfying multiple requirements | `EVIDENCE_REQ_LINK` (many-to-many between `EVIDENCE_RECORD` and `REQUIREMENT_APPLICABILITY`) |
+| Separate org/location/practitioner/specialty/enrollment/contract/clearance/training/capacity/assignment/release dimensions | Distinct entities/tables throughout Section 4.2 — no field collapses two of these together |
+| Multiple roles and resource scopes per user | `USER_ROLE_ASSIGNMENT` (user × role × scope_type × scope_id, many-to-many) |
+| Exceptions, waivers, findings, decisions, policy versions | `WAIVER`, `FINDING`, `DECISION`, `REQUIREMENT_DEFINITION.supersedes_requirement_id` |
+
+This also directly satisfies client point 8 (readiness not reduced to one status): qualification, clearance, training, enrollment, contracting, billing configuration, local-program approval, capacity, assignment readiness, and release authority are ten separate tables (Section 4.2), each independently updatable, rolling up only into a non-authoritative `READINESS_SUMMARY_VIEW` for operator display — matching the packet's own distinction between "Billing Configuration Ready" and enrolled/contracted/assignable/service-ready/claim-payable (Spec 79).
+
+Client point 9 (Detection / Recalculation / Operational restriction / Suspension / Human review / Final release-or-reinstatement kept distinct) is addressed by the `RESTRICTION_POLICY`, `OPERATIONAL_RESTRICTION`, and `SUSPENSION` entities added to Section 4.2, and worked through in full in Section 5.
+
+**Explicit exclusion:** PHI/child-family case fields, banking/tax fields are **not modeled in this schema at all** for V1 — not even as nullable columns — per Spec 03/10. Any future need for them goes through a separate, explicitly-gated restricted-data store, not this schema.
+
+---
+
+## 5. Readiness-State and Transition Model (draft — subject to Spec 33/69 ratification)
+
+**Revision note:** the previous version of this section was one linear chain that quietly mixed together six different concepts — exactly what Keystone flagged. This revision separates them explicitly. Each of the ten readiness dimensions from Section 4 goes through its own instance of the same lifecycle; `RELEASE_READINESS` and `SUSPENSION` additionally sit at the practitioner level, above the individual dimensions.
+
+### 5.1 Six distinct concepts (not one state machine)
+
+| # | Concept | What it actually is | Automatic or human-gated | Scope | Implemented by (Section 4) |
+|---|---|---|---|---|---|
+| 1 | **Detection** | An observation that something changed — evidence expired, a document was classified, a conflict was found, a duplicate request was flagged | Automatic (deterministic code, or AI-proposed and then reviewed) — always non-consequential by itself | One evidence item / one requirement | New `FINDING` row |
+| 2 | **Recalculation of readiness** | A deterministic recompute of **one** dimension's status given current evidence and findings | Automatic and deterministic — **never AI** | One dimension, one practitioner (or organization, for org-level dimensions) | The relevant `{DIMENSION}_STATUS.status` is updated; the update itself is logged as an `AUDIT_EVENT`, not silently overwritten |
+| 3 | **Operational restriction** | A practical limitation on what the practitioner may currently do (e.g., "no new assignments") | **Conditional, not automatic by default** — only automatic where a *ratified* policy explicitly says so; otherwise routes to Human Review instead | Practitioner-level, may reference one or more dimensions | New `OPERATIONAL_RESTRICTION` row, referencing the `RESTRICTION_POLICY` rule that authorized it, or a human `DECISION` |
+| 4 | **Suspension** | A formal, heavier action halting active service entirely | **Always human-gated** — never triggered automatically by a recalculation or restriction, per Spec 41/62 | Practitioner-level | New `SUSPENSION` row, always tied to an authorizing `DECISION` |
+| 5 | **Human review** | Routing a Finding, a Recalculation result, or a prospective restriction into an operator queue before anything consequential happens | This step *is* the human step — nothing here is automatic | Queue-level (Section 9's work queues) | `FINDING.status = escalated`; queue views over open Findings/prospective restrictions |
+| 6 | **Final release or reinstatement** | The consequential state change that activates (release) or reactivates (reinstatement) a practitioner | **Always human-gated, never automatic, never AI** | Practitioner-level | `RELEASE_READINESS.decision_id` → a `DECISION` with `decision_type = RELEASE` or `REINSTATEMENT` |
+
+Keystone's own example maps directly onto this table: an expired document triggers **(1) Detection** (a `FINDING`) and **(2) Recalculation** (`CLEARANCE_STATUS` moves to non-compliant) automatically. Whether that **(3) restricts operations** depends on whether a ratified `RESTRICTION_POLICY` row exists for "clearance / expired" with `auto_restrict = true` — if none exists, it routes to **(5) Human review** instead, and a person decides whether to restrict, escalate toward suspension, or simply request updated evidence. Nothing skips straight from Detection to Suspension or Release.
+
+### 5.2 Generic per-dimension lifecycle
+
+Applies independently to each of `QUALIFICATION_STATUS`, `CLEARANCE_STATUS`, `TRAINING_STATUS`, `ENROLLMENT_STATUS`, `CONTRACT_STATUS`, `BILLING_CONFIG_STATUS`, `LOCAL_PROGRAM_APPROVAL_STATUS`, `CAPACITY_STATUS`, and `ASSIGNMENT_READINESS_STATUS`:
+
+| From | Event | To | Guard | Human Gate? |
+|---|---|---|---|---|
+| `compliant` | Evidence expires / conflict found / external flag received | `compliant` (unchanged) + new `FINDING` | — | No (Detection only, no state change yet) |
+| any | `FINDING` exists for this dimension | Dimension `status` recalculated (`at_risk` / `non_compliant` / back to `compliant`) | Deterministic rule engine only | No (Recalculation) |
+| `non_compliant` | Recalculation completes | `restricted` | A `RESTRICTION_POLICY` row for this dimension has `auto_restrict = true` | No — but only because a human already ratified the policy in advance |
+| `non_compliant` | Recalculation completes | routed to Human Review queue | No matching `auto_restrict = true` policy | This step **is** the human step |
+| Human Review | Operator decides | `restricted` (manual) / `compliant` (finding dismissed) / escalated toward Suspension consideration | `DECISION` recorded | **Yes** |
+| `restricted` | New evidence resolves the underlying finding | `compliant` | Recalculation confirms compliance | No (automatic lift, still logged) |
+
+`RELEASE_READINESS` and `SUSPENSION` do **not** follow this generic table — they are practitioner-level and always human-gated, shown separately below.
+
+### 5.3 Release / Reinstatement lifecycle (practitioner-level, always human-gated)
+
+| From State | Event / Trigger | To State | Guard(s) | Human Gate? |
+|---|---|---|---|---|
+| `not_ready` | All ten dimensions show `compliant`/acceptable | `ready_for_human_review` | No open Findings, no active `OPERATIONAL_RESTRICTION` | No (this is a routing step, not a release) |
+| `ready_for_human_review` | Reviewer approves | `released` | Authorized role (Compliance Officer/Owner); `DECISION.decision_type = RELEASE`; immutable audit event written | **Yes — AI cannot trigger this** |
+| `ready_for_human_review` | Reviewer rejects / requests more evidence | `not_ready` | `DECISION` + reason code | **Yes** |
+| `released` | Any dimension recalculates to `restricted` or `non_compliant` | `released` (unchanged) + `OPERATIONAL_RESTRICTION` logged | Recalculation only affects the dimension, not `RELEASE_READINESS` directly | No — release status itself doesn't silently flip; a human decides whether it should |
+| `released` | Suspension decision made | `suspended` | `SUSPENSION` row + authorizing `DECISION`; per Spec 41/62 | **Yes** |
+| `suspended` | Reinstatement decision made | `released` | `DECISION.decision_type = REINSTATEMENT`; `SUSPENSION.reinstated_by_decision_id` set | **Yes** |
+| any state | Restricted-data or classification uncertainty detected | unchanged + `quarantine` flag on the evidence itself | Deterministic classifier flags (Section 2.5/6) | No (quarantine is a safety default on the *evidence*, not a practitioner-level penalty) |
+
+Invalid transitions **MUST** return a stable reason code and create no partial state (Spec 69). All three tables in this section are **drafts for discussion**, not ratified — final versions depend on Spec 33 (PA EI Readiness State Model) content, which we don't yet have in domain-specific form (see G-02), and on Keystone ratifying the actual `RESTRICTION_POLICY` rows (which dimensions/requirement types auto-restrict vs. route to Human Review is a business decision, not something we can assume).
+
+---
+
+## 6. Proposed API, AI-Agent Tool, and Structured-Response Contracts
+
+### 6.1 REST API surface (Phase 0/1 slice only)
+
+```
+POST   /auth/login                      (Firebase SSO exchange -> JWT)
+POST   /auth/refresh
+GET    /providers/:id
+POST   /providers
+GET    /providers/:id/requirements
+GET    /providers/:id/evidence
+POST   /providers/:id/evidence           (manual upload only; API-sourced evidence is job-driven)
+GET    /providers/:id/findings
+POST   /decisions                        (human-only; requires role check)
+GET    /providers/:id/audit
+GET    /queues/:queueName                (missing-evidence, conflicts, expiring, quarantine, review)
+```
+
+### 6.2 AI agent tool contract example
+
+Every tool: (1) takes only allowlisted fields as input, (2) returns a JSON-Schema-validated structured response, (3) writes an `AI_TOOL_CALL_LOG` row, (4) never itself calls a state-mutating service — it returns a *proposal* that a human or a deterministic rule engine acts on.
+
+```jsonc
+// Tool: classify_document
+// Input (allowlisted fields only — no PHI, no financial fields)
 {
-  "schemaVersion": "1.0",
-  "practitionerId": "uuid",
-  "calculatedAt": "2026-08-27T12:00:00Z",
-  "engineVersion": "readiness-engine-1.0.0",
-  "policyVersion": "keystone-policy-pending-ratification",
-  "dimensions": [
-    {
-      "name": "clearance",
-      "state": "incomplete",
-      "reasonCodes": ["CLEARANCE_EXPIRED"],
-      "findingIds": ["uuid"]
-    },
-    {
-      "name": "training",
-      "state": "satisfied",
-      "reasonCodes": [],
-      "findingIds": []
-    }
-  ],
-  "activeRestrictions": [],
-  "suspension": null,
-  "release": {
-    "state": "not_released",
-    "decisionId": null
+  "practitioner_id": "uuid",
+  "document_storage_uri": "s3://...",
+  "extracted_text_excerpt": "string, denylist-filtered before this point"
+}
+
+// Output schema (OpenAI structured output / function calling)
+{
+  "type": "object",
+  "required": ["document_type", "confidence", "expires_on", "reason"],
+  "properties": {
+    "document_type": { "type": "string", "enum": ["license", "certification", "background_check", "insurance", "training_record", "other"] },
+    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+    "expires_on": { "type": ["string", "null"], "format": "date" },
+    "reason": { "type": "string" }
   }
 }
-~~~
+```
 
-The summary cannot be used as a write payload. Release is derived only from a separate signed human release_decision record.
+This tool is only ever called on text that has already passed the **deterministic, pre-model restricted-data screening** in Section 11.1 (steps 1-6) — `confidence` in the output above is a **post-model** field and plays no role in that earlier screening decision. If the classifier flags a denylisted content signature at step 4, the pipeline routes to quarantine (step 5) and this tool is never invoked at all — that check happens in `src/ai/allowlist-filter` against plain extracted text, with no model call involved. The two mechanisms run at different pipeline stages and are never combined into one condition; see Section 11.1 for the full ordered pipeline.
 
-### 13.5 Error response
+**Human confirmation is mandatory for every result, not conditional on confidence (client point 10).** There is deliberately no `requires_human_review` output field, because that would imply a high-confidence result could skip review — it cannot, in V1. Every call writes `document_type`/`confidence`/`expires_on` onto `EVIDENCE_RECORD.ai_classification`/`ai_confidence`/(proposed) `expires_on`, but `confirmed_by_user_id` stays `NULL` — and the evidence cannot satisfy any `REQUIREMENT_APPLICABILITY` while it is `NULL` (Section 4.1, rule 7) — until an operator opens the item in the review queue and explicitly confirms or corrects it. `confidence` is used only to **sort/prioritize** the queue (low-confidence items surfaced first) and to decide staffing/attention — never to bypass the confirmation step itself.
 
-~~~json
-{
-  "error": {
-    "code": "SOD_VIOLATION",
-    "message": "A different authorized releaser is required.",
-    "retryable": false
-  },
-  "correlationId": "uuid"
-}
-~~~
+Any future move to let sufficiently-high-confidence classifications skip human confirmation is explicitly **out of scope for V1** and would require, before Keystone even considers it: measured accuracy against a labeled sample, an approved confidence threshold, ongoing drift monitoring, and a separate, explicit Keystone decision (its own `DEC-xxx` record) — not a configuration change we would make unilaterally.
 
-Raw document text, secrets, tokens, and restricted values never appear in errors or operational logs.
+### 6.3 Other proposed tools (Phase 1 scope)
+- `extract_requirement_metadata` — pulls dates/identifiers from a classified document
+- `draft_followup_email` — drafts (never sends) a consolidated follow-up; a human sends via Gmail
+- `summarize_evidence_conflict` — advisory summary only, feeds a human `DECISION`
 
----
+**Note:** an earlier draft of this proposal listed `flag_missing_requirement` as an AI tool. That was wrong and is corrected here — comparing a practitioner's requirement set against their confirmed evidence set is a deterministic set-difference, not a judgment call, and belongs in Section 6.4 as plain service-layer code, not an AI tool call.
 
-## 14. Roles, permissions, and separation of duties
+None of the tools above can call `POST /decisions` or any state-transition endpoint directly — enforced at the service layer, not just by tool design (Spec 05's "no tool may silently mutate... state").
 
-### 14.1 Operation-level matrix
+### 6.4 Deterministic vs. AI-based functions (client point 12)
 
-| Operation | System administrator | Onboarding worker | Evidence reviewer | Compliance decision maker | Release authority | Security reviewer | Auditor | Emergency custodian | AI service |
-|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
-| Configure infrastructure/connectors | Yes | No | No | No | No | Security approval | Read | Break-glass only | No |
-| Provision/disable users | Yes | No | No | No | No | Review | Read | Break-glass only | No |
-| Assign business roles | Request only | No | No | Approve if scoped | No | Review | Read | Break-glass only | No |
-| Create/edit practitioner and relationships | No by default | Yes | Read | Read | Read | No | Read | No | No |
-| Upload/link candidate evidence | No by default | Yes | Yes | Read | Read | Quarantine only | Read | No | Proposal only |
-| Confirm AI classification | No | No | Yes | Yes if separately scoped | No | For quarantine only | Read | No | Never |
-| Create release request | No | Yes | Yes | Yes | No | No | Read | No | Never |
-| Decide exception/waiver/compliance finding | No | No | No | Yes | Read | Security findings only | Read | No | Never |
-| Apply operational restriction | No | No | No | Yes when policy permits | No | Security restriction only | Read | Break-glass only | Never |
-| Suspend | No | No | No | Request/approve per policy | Yes if scoped | Security request only | Read | Break-glass only | Never |
-| Release/reinstate practitioner | No | No | No | Request only | Yes | No | Read | Break-glass only | Never |
-| View ordinary audit history | Technical events only | Own actions | Scoped | Scoped | Scoped | Security events | Yes | Emergency events | No |
-| View quarantined content | No by default | No | No | No | No | Yes | Metadata only unless separately authorized | Break-glass only | Never |
-| Modify policy version | No | No | No | Draft | Ratify only if designated | Security review | Read | No | Never |
+| Function | Deterministic or AI | Why |
+|---|---|---|
+| Missing-requirement detection | **Deterministic** | Set difference: `REQUIREMENT_APPLICABILITY` rows with no linked *confirmed* `EVIDENCE_RECORD` via `EVIDENCE_REQ_LINK`. No judgment involved. |
+| Expiration detection | **Deterministic** | Date comparison (`EVIDENCE_RECORD.expires_on < today`) run by a scheduled BullMQ job (Section 2.2). |
+| Requirement applicability (which requirements apply to a practitioner) | **Deterministic** | Rule lookup against `REQUIREMENT_DEFINITION` keyed by discipline/specialty/jurisdiction — a ratified rules table, not a model inference. |
+| Readiness calculation (all ten dimensions, Section 5.2 "Recalculation") | **Deterministic** | Explicitly specified as rule-engine-only in Section 5.1 — "never AI." |
+| Permissions / RBAC checks | **Deterministic** | Service-layer authorization + PostgreSQL RLS (Section 2.5) — never a model call. |
+| State-transition guards (Section 5) | **Deterministic** | Guard conditions are boolean checks against ratified rules and current data state. |
+| Duplicate-request detection | **Deterministic** | Lookup against existing open `FINDING`/outbound-communication records for the same practitioner + requirement. |
+| Document classification (`classify_document`, Section 6.2) | **AI, advisory only** | Proposes a document type/expiry/reason; never accepted without human confirmation (client point 10). |
+| Metadata extraction (`extract_requirement_metadata`) | **AI, advisory only** | Proposes structured fields pulled from unstructured text; downstream use still requires the evidence to be confirmed before it counts (Section 6.2). |
+| Follow-up communication drafting (`draft_followup_email`) | **AI, advisory only** | Produces a draft; a human reviews and sends — the tool cannot send mail itself. |
+| Evidence conflict summarization (`summarize_evidence_conflict`) | **AI, advisory only** | Explains a conflict in plain language to speed up a human `DECISION`; the decision itself is never made by this tool. |
 
-### 14.2 Small-team proposal
-
-The default is three distinct actors on a consequential case:
-
-1. requester/onboarding worker;
-2. evidence or compliance reviewer;
-3. release authority.
-
-A person may hold several roles organizationally but cannot perform incompatible steps on the same request. If Keystone cannot staff three independent actors, the system will not silently relax the rule. Keystone must approve a compensating-control design, such as an external/owner releaser or dual confirmation by two independent people with no self-approval.
-
-Break-glass access is disabled by default, time-limited, requires a reason, creates immediate alerts, cannot be used by the AI service, and requires retrospective review within a Keystone-approved window under G-14.
+The dividing line is simple and applied consistently: **if an outcome is controlling (it changes a status, a permission, or a release), it is deterministic code. If it only explains, drafts, or proposes something a human or a rule engine still has to accept, it may be AI.** No function in this proposal crosses that line in the other direction.
 
 ---
 
-## 15. Coherent authentication and session model
+## 7. Operation-Level Role and Permission Matrix (revised — client point 13)
 
-Supabase Auth is the only identity and session authority.
+**What was wrong with the previous version:** "Super Admin" was one role with a ✅ in every column, including release and compliance-decision authority — exactly what Keystone flagged: technical administration must not automatically grant business release authority. This revision separates **eight distinct permission dimensions** and maps roles onto them explicitly, backed by `USER_ROLE_ASSIGNMENT` (Section 4.2), which allows one person to hold more than one — but only as separate, individually-auditable, individually-revocable grants, never bundled into one all-powerful role.
 
-1. **SSO:** users sign in with Keystone-approved Google Workspace accounts through Supabase Auth's Google OIDC provider.
-2. **Provisioning:** an account must be pre-provisioned/invited and linked to an active app_user record; domain membership alone grants no application access.
-3. **MFA:** TOTP MFA is mandatory for privileged application access. Consequential actions require AAL2.
-4. **Tokens:** Supabase issues and rotates access/refresh tokens. The application does not issue a second JWT family.
-5. **Role evaluation:** roles and scopes are database records evaluated on every protected operation, not long-lived custom claims.
-6. **Disabled accounts:** disabled_at and membership state are checked by RLS helpers and guarded functions. Active sessions are revoked through the Auth administration path.
-7. **Role changes:** take effect immediately for database authorization because current role assignments are queried at action time.
-8. **Proposed session policy:** 15-minute access-token lifetime, eight-hour maximum working session, 30-minute inactivity lock, subject to Keystone approval.
-9. **Reauthentication:** release, reinstatement, suspension, role grant, connector change, and break-glass actions require AAL2 and authentication no older than 15 minutes.
-10. **No local passwords:** Firebase, local password hashes, and application-created refresh tokens are removed from the design.
+### 7.1 The eight permission dimensions
 
-Exact session durations remain a Keystone security decision, but the implementation mechanism is coherent regardless of the selected values.
+| # | Dimension | What it covers | Maps to (Section 4/5) |
+|---|---|---|---|
+| 1 | System administration | User accounts, role assignments, connector configuration (Gmail/Drive), infrastructure | `USER_ACCOUNT`, `USER_ROLE_ASSIGNMENT` |
+| 2 | Onboarding work | Create/edit practitioner and organization records, initiate intake | `PRACTITIONER`, `PRACT_ORG_AFFILIATION`, etc. |
+| 3 | Evidence review | Upload/link evidence, and specifically the affirmative confirmation step (client point 10) | `EVIDENCE_RECORD.confirmed_by_user_id` |
+| 4 | Compliance decisions | Resolve conflicts, approve waivers, non-release `DECISION` records | `WAIVER`, `DECISION` (types other than RELEASE/SUSPENSION) |
+| 5 | Provider release | The consequential human gate — release, reinstatement, restriction override | `DECISION` (RELEASE / REINSTATEMENT / RESTRICTION_OVERRIDE) |
+| 6 | Security review | Restricted-data quarantine review (Section 11.1, step 5), ratifying `RESTRICTION_POLICY` rows | `EVIDENCE_RECORD` (quarantined), `RESTRICTION_POLICY` |
+| 7 | Audit access | View audit history | `AUDIT_EVENT` |
+| 8 | Emergency access | Time-bound elevated access, outside normal role assignment | Logged separately, never a standing permission |
 
----
+### 7.2 Roles (each a bundle of dimensions — not one role holding all eight)
 
-## 16. Infrastructure cost models
+| Action / Dimension | System Admin | Onboarding Coordinator | Compliance Officer | Release Authority | Security Reviewer | Auditor (read-only) |
+|---|---|---|---|---|---|---|
+| Manage users/roles/connectors (1) | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
+| Create/edit provider record (2) | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Upload/confirm evidence (3) | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ |
+| Resolve conflict / non-release Decision (4) | ❌ | ❌ | ✅ | ❌ | ❌ | ❌ |
+| Approve release / suspension / reinstatement (5) | ❌ | ❌ | ❌ | ✅ | ❌ | ❌ |
+| Restricted-data / quarantine review, ratify restriction policy (6) | ❌ | ❌ | ❌ | ❌ | ✅ | ❌ |
+| View records (all) | ✅ | ✅ (assigned scope) | ✅ (assigned scope) | ✅ (assigned scope) | ✅ (restricted-data scope) | ✅ (all, 7) |
+| View audit log (7) | ✅ (own scope) | ✅ (own actions) | ✅ (own actions) | ✅ (own actions) | ✅ (own actions) | ✅ (all) |
+| Emergency access elevation (8) | ✅ (time-bound, audited, requires a second approver) | ❌ | ❌ | ❌ | ❌ | ❌ |
 
-All amounts are planning estimates in USD as of August 2026, before tax. They price the selected Supabase + one AWS Next.js deployment architecture. They exclude engineering fees, Keystone's existing Google Workspace, legal/compliance reviews, and unapproved integrations. Actual AWS, model, OCR, scanning, egress, and log costs are usage-based.
+`USER_ROLE_ASSIGNMENT` lets a real person hold, say, both **Compliance Officer** and **Release Authority** on a small team — but that is two separate grants, each independently visible in the audit trail and independently revocable, not one merged "does everything" role. **System Administration never includes dimension 5 or 6 by default** — an admin who also needs release or security-review authority gets a second, explicit role grant, logged as its own event.
 
-### 16.1 Assumptions
+The **AI service account is not part of this role system at all.** It holds no permission dimension above — it can only write to `AI_TOOL_CALL_LOG` and propose `FINDING`s, enforced at the schema/service layer (Section 6.4), independent of RBAC roles.
 
-| Model | Users / practitioners | Traffic and jobs | Database / evidence | Availability | Retention assumed for estimate |
-|---|---|---|---|---|---|
-| Katherine prototype | 2–5 users / 1 synthetic practitioner | Under 5,000 requests and 500 job runs/month | Under 1 GB DB and 1 GB synthetic files | Best effort; one app task; no production SLA | 7-day operational logs; Supabase Pro daily backups; synthetic data disposable after acceptance |
-| Internal pilot | 10–25 users / up to 500 practitioners | Up to 150,000 requests and 25,000 jobs/month | Up to 8 GB DB and 50 GB evidence | Two app tasks proposed; no contractual SLA until approved | 30-day operational logs; 7-day managed backup; evidence retention assumed 1 year for costing only |
-| Production target | 25–75 users / up to 5,000 practitioners | Up to 1.5M requests and 250,000 jobs/month | Up to 50 GB DB and 500 GB evidence | Multi-instance app; formal SLA/RPO/RTO require G-16 | 90-day hot operational logs; 7-day PITR assumption; evidence/audit archive term remains TBD |
+### 7.3 Requester/reviewer/releaser separation for a small team (resolves G-14)
 
-### 16.2 Monthly cost ranges
+Rather than leave this as a soft warning, we propose a **narrow, hard, scoped rule**: for a given practitioner's given review cycle, the `confirmed_by_user_id` on the evidence and the `decided_by_user_id` on the `RELEASE_READINESS`-gating `DECISION` **must not be the same person** — enforced at the service layer by checking the audit trail before allowing the release action, not left to convention.
 
-| Material service | Katherine | Internal pilot | Production target | Basis |
-|---|---:|---:|---:|---|
-| Supabase plan/compute/storage/backups | $25–$40 | $75–$175 | $700–$1,050 | Pro for prototype/pilot; production assumes Team, larger compute, storage, and PITR allowance |
-| AWS ECS Fargate, load balancer, registry | $30–$55 | $70–$140 | $180–$400 | One prototype task; two pilot tasks; multi-instance production |
-| AWS logs, metrics, secrets, alerts | $5–$15 | $20–$75 | $100–$350 | Driven by ingestion and retention |
-| OpenAI API | $5–$25 | $25–$150 | $100–$750 | Advisory calls only; depends on document/token volume and selected model |
-| Malware scanning/OCR | $0 in Katherine | $25–$150 | $100–$600 | Production component is TBD under G-20 |
-| GitHub Actions / security scanning | $0–$10 | $0–$50 | $25–$150 | Depends on plan, seats, and CI minutes |
-| **Estimated total** | **$65–$145/month** | **$215–$740/month** | **$1,205–$3,300/month** | Directional until G-15, G-16, and G-20 are resolved |
-
-These are not vendor quotes or a production commitment. A production cost ceiling cannot be reliable until data volume, retention, availability, OCR/scanning, model selection, and integration frequency are approved.
+For a team small enough that this would deadlock (literally only one person available), the system requires a **compensating control** instead of silently allowing it: a second authorized user (any role holding dimension 5 or above) must co-confirm via a lightweight secondary sign-off before the release proceeds. This co-sign is itself logged as an `AUDIT_EVENT` referencing Spec 45 (Exception, Waiver and Compensating Control Policy) — so a small-team exception is always visible and time-bound, never a silent gap.
 
 ---
 
-## 17. Multi-instance-safe background work
+## 8. Katherine Synthetic Golden Record — Plan
 
-Application-local cron is not used.
-
-1. Supabase Cron/pg_cron creates scheduled work at the database layer.
-2. Supabase Queues/pgmq stores durable messages with a visibility timeout.
-3. Every job has a unique idempotency key based on job type, source system, source record, and payload version.
-4. A job_execution row records claim time, worker, attempt, correlation ID, input hash, result, and next retry time.
-5. Workers may run concurrently; queue visibility and an atomic idempotency claim prevent duplicate business effects.
-6. Retries are bounded. The proposed default is five attempts with capped exponential backoff, subject to connector-specific limits.
-7. Exhausted or non-retryable work enters a dead-letter/archive state with a stable reason code and operator alert.
-8. Replay requires an authorized operator, preserves the original job, and creates a linked execution using the same business idempotency key.
-9. Reconciliation jobs compare source cursors/counts/identifiers with accepted local records and create findings for gaps.
-10. A retry never directly creates a second evidence, request, email draft, decision, or release event.
-
-Live Gmail, Drive, ChildLink, and Elwyn jobs are not part of Katherine; the queue contract is established so later connectors do not require a new reliability model.
+1. **Content source (blocked on G-08):** Keystone supplies or approves a fully synthetic provider profile — one discipline, one location, a defined requirement set, a mix of valid/expiring/conflicting/missing evidence, and at least one restricted-data-adjacent field (e.g., a fake SSN-shaped string) specifically to prove the quarantine path works.
+2. **Fixture format:** version-controlled JSON/seed script under `prisma/fixtures/katherine/`, immutable once accepted — any change requires a new version + decision record (Spec 04).
+3. **Expected outputs to assert:** requirement applicability list, evidence status per item, at least one conflict, next-action list, citations, and a **blocked** release state until a human decision is recorded.
+4. **Test:** `tests/katherine.spec.ts` runs the full intake → evidence → conflict → human-decision → released flow against the fixture and asserts semantically equivalent output on repeated runs (Spec 04, 24, 73).
+5. **Demonstration deliverable:** a recorded walkthrough (screen capture) plus the test report, submitted as Katherine milestone acceptance evidence (Spec 81).
 
 ---
 
-## 18. Katherine synthetic golden-record plan
+## 9. Repository, Testing, Deployment, Logging, Monitoring Structure
 
-### 18.1 Fixture contents
-
-Keystone supplies or approves a wholly synthetic manifest containing:
-
-- a fictional practitioner identity;
-- at least one organization relationship, two locations, and effective dates;
-- discipline and specialty assignments;
-- a supervisor relationship;
-- versioned requirement and policy fixtures;
-- valid, expiring, expired, missing, conflicting, and duplicate-candidate evidence;
-- one evidence version that supports more than one requirement;
-- enrollment, contract, clearance, training, billing, local-program, capacity, and assignment examples;
-- a synthetic restricted-data canary that must never reach the model;
-- named synthetic requester, reviewer, releaser, auditor, and security-review users;
-- expected findings, readiness dimensions, denied actions, and final human decision sequence.
-
-No real person, provider, child, family, patient, bank, or taxpayer data is permitted.
-
-### 18.2 Versioned implementation
-
-The fixture will live under fixtures/katherine with:
-
-- manifest.json for identity and relationships;
-- policies.json and requirements.json for ratified synthetic rules;
-- evidence metadata plus synthetic files;
-- expected-readiness.json;
-- expected-audit-sequence.json;
-- a fixture version, content hashes, and change history.
-
-Database seeding uses deterministic fixture identifiers. An accepted fixture is immutable; a change creates a new version and requires updated expected outputs.
-
-### 18.3 Proof sequence
-
-1. Start from a clean local/test database.
-2. Seed Katherine and the synthetic role accounts.
-3. Calculate requirement applicability through deterministic code.
-4. Register candidate evidence and prove content-hash deduplication.
-5. Quarantine the restricted-data canary before any model call.
-6. Generate an AI classification proposal for an allowed synthetic document.
-7. Prove that the unconfirmed proposal satisfies no prerequisite.
-8. Affirmatively confirm it as the independent evidence reviewer.
-9. Recalculate each affected readiness dimension and open findings.
-10. Demonstrate that expiration changes the dimension but does not silently restrict operations.
-11. Resolve the synthetic finding through an authorized human decision.
-12. Prove the requester cannot self-release and the system administrator cannot release.
-13. Complete release through the distinct authorized releaser with recent AAL2.
-14. Verify the append-only audit sequence.
-15. Reset and rerun to prove semantically equivalent deterministic results.
-
-### 18.4 Katherine acceptance artifact
-
-The generated golden-record report includes fixture hash/version, application commit, database migration version, policy version, engine version, AI model/schema version, test results, expected-versus-actual dimensions, denied-path evidence, audit-event sequence, known limitations, and unresolved decisions. Katherine proves the vertical slice only; it does not prove production scale, live integration behavior, or readiness for real data.
+- **Repo:** single GitHub repo (client-owned org, per G-11), monorepo layout as shown in Section 2.2, branch protection on `main`, PR review required.
+- **Testing:** Jest unit tests per service; integration tests against a dockerized Postgres in CI; Katherine + (later) nine-provider fixtures as end-to-end regression suite (Spec 06, 73); negative/unauthorized-path tests required for every RBAC-gated endpoint (Spec 13, 71).
+- **CI/CD:** GitHub Actions — lint → typecheck → unit test → integration test → build image → deploy to `staging` on merge to `main`; manual promotion gate to `production`.
+- **Logging:** Winston structured JSON logs shipped to CloudWatch Logs; every consequential action also writes an `AUDIT_EVENT` row (queryable, not just log-file based) — this satisfies Spec 27's audit-catalog intent independent of infra logging.
+- **Monitoring:** CloudWatch alarms on error rate, queue depth (BullMQ), RDS connections/CPU, `/health` endpoint uptime check. Sentry proposed as an **optional** add for error aggregation (costed separately, Section 10).
+- **Environments:** `dev` (local Docker Compose), `staging` (AWS, synthetic data only, this is where Katherine/nine-provider acceptance runs), `production` (AWS, hardened per Spec 14, gated by Spec 17 go-live checklist). Separate AWS accounts for non-prod/prod is our recommendation (ASSUMPTION, see G-13, Section 1).
 
 ---
 
-## 19. Bottom-up estimates by maturity level
+## 10. Third-Party Services, Licenses, and Estimated Operating Costs — Three Infrastructure Tiers (client point 17)
 
-Dollar illustrations use the G-22 assumption of $24/hour. The Phase 0 and Katherine figures are proposed milestone estimates. Production-intent and hardening ranges apply only to maturing the same Katherine vertical slice—not the complete platform, integrations, nine-provider suite, internal application, or provider portal.
+Pricing below is verified against current AWS on-demand rates for `us-east-1` (N. Virginia), AZ `us-east-1b`, as of August 2026 — RDS `db.t4g.medium` at $0.073/hr compute + $0.115/GB-month gp3 storage; EC2 `t3.medium` at $0.0416/hr + $0.08/GB-month gp3 EBS. Ranges are kept on the safe/conservative side to absorb data-transfer, snapshot, and minor usage variance. **All three tiers still depend on G-12 (confirmed operator/provider volume) for final accuracy**, especially OpenAI usage and storage growth in Tiers 2-3.
 
-### 19.1 Design/specification — Phase 0
+### 10.1 Tier 1 — Katherine Prototype
 
-| Work category | Hours | Keystone receives |
-|---|---:|---|
-| Packet traceability and gap/dependency register | 6 | Requirement map, complete register, implementability classification |
-| Architecture and ADR | 6 | Selected architecture, ADR, component boundaries, version policy |
-| Canonical data model | 9 | Data dictionary, relationship rules, ERDs, migration sequence |
-| Readiness and transition design | 7 | Separate dimension definitions, calculation inputs, state/transition tables |
-| Authorization, auth, and separation-of-duties design | 7 | RLS strategy, role matrix, identity/session design, negative-test matrix |
-| API, AI, restricted-data, and job contracts | 6 | Endpoint/tool schemas, structured responses, pipeline and idempotency design |
-| Cost, delivery, acceptance, and repository documentation | 4 | Three cost models, milestone SOWs, test/deployment/monitoring plan |
-| **Total** | **45 hours / $1,080** | Complete Phase 0 design package |
+**Assumptions:** one synthetic practitioner record; single combined dev/staging environment; no real operators yet, developer + occasional client demo access only; a handful of test documents; no retention requirement beyond the engagement; components trimmed per Section 2.2a (no CloudFront, no SendGrid, no Twilio, no dedicated Redis, no separate Vercel).
 
-### 19.2 Prototype implementation — Katherine
+| Service | Spec | Est. Monthly Cost | Notes |
+|---|---|---|---|
+| AWS RDS PostgreSQL | `db.t4g.medium`, Single-AZ, 30 GiB gp3, storage autoscaling on, `us-east-1b` | $55-65 | $0.073/hr compute (~$53) + 30 GiB × $0.115 (~$3.45) |
+| AWS EC2 | `t3.medium`, Ubuntu Linux, 60 GiB gp3 EBS | $33-40 | $0.0416/hr (~$30) + 60 GiB × $0.08 (~$4.80) |
+| Redis | Docker container on the same EC2 instance | $0 incremental | Section 2.2a — no dedicated node at this tier |
+| S3 | Evidence storage, single small bucket | $2-5 | Minimal document volume |
+| OpenAI API | Katherine fixture + occasional manual test runs only | $10-15 | Not live traffic |
+| Firebase Admin / Google Workspace API | SSO, Gmail/Drive access | $0 incremental | Assumes Keystone's existing Workspace (G-07) |
+| GitHub Actions, Snyk (free tier) | CI/CD, dependency scanning | $0-10 | |
+| **Tier 1 total** | | **~$100-135/month** | |
 
-| Work category | Hours | Keystone receives |
-|---|---:|---|
-| Keystone-owned repo, environment, and CI scaffold | 7 | Repository, protected workflow, local setup, build/test pipeline |
-| Schema, migrations, Supabase Auth, RLS, and scoped roles | 14 | Executable schema and policy tests |
-| Practitioner record and requirements-checklist UI/API | 9 | Working login-to-checklist flow |
-| Deterministic findings, readiness, guarded transitions, and audit | 14 | Versioned engine and append-only decision/audit path |
-| Synthetic evidence, AI proposal, human confirmation, Katherine fixture | 10 | Advisory classification flow and repeatable golden record |
-| Automated unit, integration, RLS-negative, and restricted-routing tests | 9 | CI test report and acceptance evidence |
-| Demonstration, runbook, risks, and handoff | 5 | Recorded/live demo, setup/runbook, known limitations |
-| **Total** | **68 hours / $1,632** | Katherine synthetic prototype; not a production system |
+### 10.2 Tier 2 — Internal Pilot
 
-### 19.3 Production-intent implementation of the same vertical slice
+**Assumptions:** nine-provider regression suite plus a small number of real (or realistic sanitized) practitioner records; a handful of real operators actively using the console; separate staging and pilot-production environments (2× the compute of Tier 1); real Gmail/Drive polling volume at low frequency; CloudFront and SendGrid reinstated as real requirements now exist; still Single-AZ (pilot, not full production HA); 90-day evidence retention assumed pending Spec 28 ratification.
 
-| Work category | Range | Keystone receives |
-|---|---:|---|
-| Production file intake, scanning/OCR boundary, storage lifecycle | 18–26h | Approved ingestion implementation and failure paths |
-| Durable workers, reconciliation, dead-letter/replay tooling | 14–20h | Multi-instance-safe operational job flow |
-| Production-intent identity lifecycle and access administration | 12–18h | Provisioning, revocation, reviews, role-change controls |
-| Data migration, policy-version operations, operator queues | 14–20h | Operational workflows replacing prototype shortcuts |
-| Expanded tests and documentation | 14–20h | Production-intent regression and operations package |
-| **ROM total** | **72–104h / $1,728–$2,496** | Same slice implemented with production intent; separately authorized |
+| Service | Spec | Est. Monthly Cost | Notes |
+|---|---|---|---|
+| AWS RDS PostgreSQL | `db.t4g.medium` × 2 environments, Single-AZ, 30-50 GiB, autoscaling on | $110-140 | Staging + pilot |
+| AWS EC2 | `t3.medium` × 2 environments, Ubuntu, 60 GiB EBS | $66-85 | Staging + pilot |
+| Redis | Docker on pilot EC2 (staging still shared/local) | $0-15 | Dedicated node optional at this tier |
+| S3 + CloudFront | Growing evidence volume, real preview traffic | $15-30 | |
+| SendGrid | Real operator/provider notifications | $15-25 | Essentials-tier plan |
+| OpenAI API | Nine-provider regression + real pilot classification volume | $40-70 | Volume-dependent — revisit with G-12 |
+| Twilio | **Not included** — no confirmed use case (Section 2.2) | $0 | Add only if Keystone confirms a requirement |
+| Firebase / Workspace API, GitHub Actions, Snyk/Sentry | | $10-25 | |
+| **Tier 2 total** | | **~$255-390/month** | |
 
-### 19.4 Production hardening of the same vertical slice
+### 10.3 Tier 3 — Production Target
 
-| Work category | Range | Keystone receives |
-|---|---:|---|
-| Threat model, security review, dependency/container hardening | 12–18h | Resolved findings and security evidence |
-| Load, failure, concurrency, and recovery testing | 12–18h | Test reports and remediation |
-| Backups, restore drill, monitoring, alerting, runbooks | 12–18h | Recovery evidence and operator runbooks |
-| Accessibility, browser, privacy, release checklist, final defect pass | 12–18h | Release-readiness evidence |
-| **ROM total** | **48–72h / $1,152–$1,728** | Hardened vertical slice; full production authorization remains separate |
+**Assumptions:** full internal application live for all Keystone operators across all in-scope counties; Multi-AZ database for real availability requirements (Spec 25 NFR); EC2 behind a load balancer for horizontal scale and zero-downtime deploys; a dedicated managed Redis (no longer Docker-on-EC2 — the G-15 assumption explicitly reverses at this tier); full CloudFront; production-volume Gmail/Drive polling; retention per ratified Spec 28 schedule; distinct production AWS account (G-13). **Provider/practitioner count is not yet known (G-12) — this tier is the widest-uncertainty estimate of the three and should be revisited once that volume is confirmed.**
+
+| Service | Spec | Est. Monthly Cost | Notes |
+|---|---|---|---|
+| AWS RDS PostgreSQL | `db.t4g.large` or equivalent, **Multi-AZ**, 50-100 GiB, autoscaling on | $220-320 | Multi-AZ roughly doubles Single-AZ cost at this instance size |
+| AWS EC2 | 2× `t3.medium`–`t3.large` behind an Application Load Balancer, Ubuntu, Auto Scaling Group | $150-220 | Includes ~$16-20/mo ALB |
+| ElastiCache Redis | Dedicated managed node (`cache.t4g.small` or larger) | $25-45 | Reverses G-15's Docker-on-EC2 assumption at this tier |
+| S3 + CloudFront | Full evidence retention volume, production preview traffic | $40-70 | Volume-dependent |
+| SendGrid | Production notification volume | $30-90 | Volume-dependent |
+| OpenAI API | Full production classification/extraction/drafting volume | $150-400 | **Widest-uncertainty line item** — directly tied to G-12 |
+| Twilio | Only if confirmed | $0 or TBD | |
+| Firebase / Workspace API, GitHub Actions, Snyk/Sentry, monitoring | | $30-60 | |
+| **Tier 3 total** | | **~$645-1,205/month** | Wide range reflects G-12 volume uncertainty, not estimation carelessness |
 
 ---
 
-## 20. Independently authorized Upwork milestones
+## 11. Security, Privacy, Restricted-Data-Routing, Backup, and Recovery Assumptions
 
-### Milestone 0 — Phase 0 design and specification
+### 11.1 Restricted-data pipeline (client point 11 — steps kept separate and ordered)
 
-**Proposed amount:** $1,080 based on 45 hours at $24/hour. Hours explain the estimate; payment is tied to accepted deliverables and evidence.
+The previous draft's wording mixed the pre-model denylist check with `confidence`, a field that is only ever produced *after* a model call — Keystone correctly flagged this as confusing two different mechanisms. Below is every step in order, each with what happens, whether it's deterministic or AI, and what it touches. Nothing here is combined into a single condition.
 
-**Exact deliverables**
+| # | Step | What happens | Deterministic or AI | Result / artifact |
+|---|---|---|---|---|
+| 1 | **File receipt** | Gmail/Drive sync job or manual upload delivers raw bytes + source metadata (sender, filename, source system) to an S3 holding prefix — not yet the canonical evidence bucket | Deterministic (job code) | `EVIDENCE_SOURCE_REF` row created; `EVIDENCE_RECORD.status = 'pending'` |
+| 2 | **Malware scanning** | File scanned before anything else touches it | Deterministic (scanner) | Pass → step 3. Fail → file rejected, security event logged, pipeline stops here entirely |
+| 3 | **Text extraction / OCR** | Raw text pulled from the file (PDF/image/doc) into a temporary, non-persisted buffer | Deterministic (extraction library) | Plain text, held only in memory for the next step — not yet written anywhere AI-reachable |
+| 4 | **Deterministic restricted-data screening** | Regex/pattern denylist classifier runs against the extracted text (SSN-shaped strings, bank-routing patterns, PHI keyword signatures per Spec 03/10) | **Deterministic — no model call involved at this step** | Clean → step 6. Flagged, or uncertain → step 5 (uncertain always defaults to quarantine, per Spec 10) |
+| 5 | **Quarantine** | Evidence marked `status = 'quarantined'`, `data_class` set, an `AuditEvent`/security event written, routed to a restricted-data review queue — a human with restricted-data permission decides false-positive (→ back to step 6 with confirmed-safe text) or genuinely restricted (→ moved to a separate, explicitly-gated restricted-data store outside the AI-reachable schema entirely, never re-enters this pipeline) | Human decision, not AI | Terminal for this pipeline either way — restricted material never reaches step 6 |
+| 6 | **Allowlisted prompt construction** | Only text that passed step 4 clean reaches here. The application assembles the prompt from allowlisted fields only (`src/ai/` per Section 2.2) — this is a second, independent filter, not a rerun of step 4 | Deterministic (application code) | Prompt payload, still inside our infrastructure boundary |
+| 7 | **AI processing** | The OpenAI API call itself (e.g., `classify_document`, Section 6.2) | AI | Raw model response — the only step that leaves our infrastructure boundary |
+| 8 | **Schema validation** | Model output validated against the JSON Schema (Section 6.2) before it touches the database | Deterministic (schema validator) | Valid → step 9. Invalid/malformed → rejected and retried or escalated, never partially trusted |
+| 9 | **Confidence handling** | The validated `confidence` value (a **post-model** field — this is the one Keystone flagged as conflated with step 4) is stored on `EVIDENCE_RECORD.ai_confidence` | AI output, deterministic handling | Used **only** to sort/prioritize the human review queue (Section 6.2, client point 10) — never a gate on whether review happens |
+| 10 | **Human review** | An operator opens the item (queue ordered by confidence/age/type per step 9), compares the AI's proposed classification to the source document | Human | Confirms or corrects; writes `EVIDENCE_RECORD.confirmed_by_user_id` / `confirmed_at` (client point 10) |
+| 11 | **Evidence acceptance** | Only once `confirmed_by_user_id` is non-null can the evidence link to a `REQUIREMENT_APPLICABILITY` via `EVIDENCE_REQ_LINK` | Deterministic (service-layer check) | Evidence becomes eligible to feed a dimension's Recalculation step (Section 5.2) |
 
-- Final gap/question/dependency/assumption/decision register
-- Requirement traceability and implementability matrix
-- Approved architecture and ADR
-- Canonical data dictionary and ERDs
-- Readiness dimensions and formal transition tables
-- RLS, RBAC, authentication, restricted-data, job, API, and AI-tool contracts
-- Katherine fixture specification and expected-output manifest
-- Three cost models
-- Repository, testing, deployment, logging, monitoring, backup, and recovery plan
-- Katherine milestone SOW and acceptance-test specification
+```mermaid
+flowchart TD
+    A[1 File receipt] --> B[2 Malware scanning]
+    B -->|fail| X1[Rejected — pipeline stops]
+    B -->|pass| C[3 Text extraction / OCR]
+    C --> D[4 Deterministic restricted-data screening<br/>no model call]
+    D -->|flagged or uncertain| E[5 Quarantine<br/>human restricted-data review]
+    E -->|false positive, confirmed safe| F
+    E -->|genuinely restricted| X2[Moved to separate restricted-data store<br/>never re-enters this pipeline]
+    D -->|clean| F[6 Allowlisted prompt construction]
+    F --> G[7 AI processing]
+    G --> H[8 Schema validation]
+    H -->|invalid| X3[Rejected — retry or escalate]
+    H -->|valid| I[9 Confidence handling<br/>post-model, queue priority only]
+    I --> J[10 Human review]
+    J --> K[11 Evidence acceptance]
+```
 
-**Explicit exclusions**
+### 11.2 Other security, backup, and recovery assumptions
 
-- Product implementation or deployable application
-- Production migrations, live accounts, or real data
-- Gmail/Drive, ChildLink, Elwyn, PROMISe/HCSIS, county, or joinder integration
-- Production security certification, legal opinion, or policy authorship
+- **Secrets management:** AWS Secrets Manager (not `.env` files) for production; `.env` only for local dev, gitignored.
+- **Backups:** RDS automated daily snapshots + point-in-time recovery (35-day window proposed, TBD final retention); S3 versioning enabled on the evidence bucket so deletion never destroys prior versions (Spec 09).
+- **Environment separation:** distinct AWS accounts (or at minimum distinct VPCs + IAM boundaries) for non-production and production (ASSUMPTION G-13 — flagging as a recommendation, not yet client-confirmed).
+- **Access review:** quarterly access review proposed for Phase 5 hardening (Spec 14); not in Phase 0/1 scope.
+- **What is explicitly OUT of the V1 AI context**, regardless of stack choice: PHI, child/family case information, banking details, SSNs, tax data, direct-deposit information (per job posting + Spec 03) — enforced at the schema level (these fields don't exist in the AI-reachable schema) and at the routing-filter level (belt and suspenders).
 
-**Dependencies and Keystone inputs**
+---
 
-- Complete controlling packet and source materials
-- Written answers/owners for G-01 through G-22 as applicable
-- Approval of selected architecture and Katherine synthetic-data owner
-- Availability of Keystone technical, operations, compliance, and security reviewers
+## 12. Business / Policy / ChildLink / Elwyn / County / Joinder Questions Requiring Resolution Before Implementation
 
-**Demonstration**
+(Consolidated from Section 1 register — repeated here per the client's explicit request for a standalone list)
 
-- Upwork technical-review meeting and repository walk-through
-- Written meeting notes posted afterward in Upwork
+1. ChildLink integration: does it exist, what's the contract/API, is there a sandbox? (G-03)
+2. Elwyn integration: same questions. (G-04)
+3. Which counties/joinders are in scope for V1, and who owns ratifying each overlay's rules? (G-05)
+4. Is PROMISe/ITF Waiver/HCSIS a live integration or a manual/documentary reconciliation process in V1? (G-06)
+5. Who is the authoritative source/owner for PA EI policy citations feeding Spec 43/63? (G-09)
+6. What does "Katherine" actually need to contain, and who signs off on the synthetic content? (G-08)
+7. Google Workspace: domain-wide delegation service account, or per-operator OAuth? (G-07)
+8. Confirm whether Supabase is a hard technical requirement or a stated preference we may deviate from. (G-01)
+9. Confirm AWS/GitHub/Google Workspace account provisioning plan and timing. (G-11)
+10. Expected operator headcount and provider volume for infra sizing/cost accuracy. (G-12)
 
-**Automated tests**
+---
 
-- No application code is delivered, so product behavior tests are explicitly not applicable.
-- Documentation CI will validate Markdown, internal links, Mermaid syntax/renderability, JSON Schema syntax, and table/identifier consistency.
+## 13. Explicit Exclusions and Items Not Yet Reliably Estimable
 
-**Acceptance evidence**
+- **Excluded from this Phase 0 proposal entirely:** Phases 2-6 (nine-provider generalization, live Gmail/Drive integration build-out, internal application UI build, production hardening, provider portal). These require Phase 0/1 findings first, per the packet's own "completion of one milestone does not automatically authorize the next" rule.
+- **Not yet estimable:** ChildLink/Elwyn integration effort (blocked on G-03/G-04), county/joinder overlay effort (blocked on G-05), PROMISe/HCSIS integration effort (blocked on G-06), Twilio/SMS scope (no confirmed use case yet), any effort tied to the original (non-reconstructed) PDF's domain-specific content if it turns out to differ materially from what we've reviewed (G-02).
+- **Deliberately not addressed here:** legal/compliance sign-off process, contractual terms, and any HIPAA/42 CFR Part 2-style analysis — those are policy/legal questions for Keystone's counsel, not engineering estimates.
 
-- Every requested Phase 0 artifact exists in the Keystone-controlled repository.
-- Every unresolved item has an owner, type, impact, and required decision/source.
-- No dangling register IDs or conflicting architecture/cost assumptions.
-- Architecture, model, transitions, tools, and permissions are cross-referenced and internally consistent.
+---
 
-**Defect-resolution period**
+## 14. Milestone Authorization — Phase 0 and Katherine as Independently Authorized Deliverables (client point 19)
 
-- Five business days after consolidated Keystone acceptance feedback for in-scope corrections.
+Two separate Upwork milestones, each gated on its own acceptance evidence and its own explicit authorization — completing one never auto-authorizes the other (packet's own rule, Spec 20/83).
 
-**Payment gate**
+### 14.1 Milestone 1 — Phase 0 (Foundation Control)
 
-- Milestone is funded before work.
-- Submission includes an acceptance checklist.
-- Keystone approves payment when the checklist evidence satisfies the written milestone; elapsed hours alone do not trigger payment.
-
-**Go/no-go for Katherine**
-
-- Phase 0 accepted.
-- G-02 architecture approved.
-- G-03 Katherine fixture and expected results approved.
-- Required Keystone-controlled accounts available.
-- RLS/role/SoD model approved.
-- No unresolved security or policy question blocks the synthetic flow.
-
-### Milestone 1 — Katherine synthetic vertical-slice proof
-
-**Proposed amount:** $1,632 based on 68 hours at $24/hour. Hours explain the estimate; payment is tied to accepted evidence.
-
-**Exact deliverables**
-
-- Keystone-owned repository, CI, environment manifest, and deployment assets
-- Google SSO through Supabase Auth, MFA enforcement, scoped roles, and disabled-account flow
-- Practitioner record with multi-organization-ready relationship structure
-- Requirements checklist and deterministic applicability/expiration/missing-item logic
-- Separate readiness-dimension calculations and findings
-- Guarded review/release flow with audit history and separation-of-duties enforcement
-- Synthetic evidence versions, AI classification proposal, and affirmative human confirmation
-- Katherine seed/fixture, expected-output manifest, and repeatable demonstration
-- Automated test suite and generated test report
-- Setup, operations, risk, and limitation documentation
-
-**Explicit exclusions**
-
-- Real provider or production data
-- PHI, child/family case information, SSNs, banking, tax, or direct-deposit data
-- Live Gmail/Drive, ChildLink, Elwyn, county/joinder, PROMISe, HCSIS, or payer integration
-- Nine-provider regression suite
-- Provider portal
-- Production ingestion/OCR/malware service
-- Production HA/SLA, load certification, disaster-recovery certification, or full production hardening
-- Autonomous AI acceptance, compliance decision, restriction, suspension, release, or reinstatement
-
-**Dependencies and Keystone inputs**
-
-- Milestone 0 accepted and Milestone 1 funded
-- Keystone-owned GitHub, Supabase, AWS, Google, and OpenAI access
-- Approved Katherine fixture, requirements, expected results, and policy version
-- Named requester, reviewer, releaser, and security-test accounts
-- Approved evidence taxonomy and restricted-data canary
-
-**Demonstration requirements**
-
-- Login → practitioner → requirements checklist → evidence proposal → human confirmation → deterministic readiness → review → human release decision → audit history
-- Re-run from a clean database using the versioned Katherine fixture
-- Demonstrate denied cross-organization and unauthorized-release attempts
-
-**Automated tests and acceptance evidence**
-
-| Acceptance behavior | Required evidence |
+| | |
 |---|---|
-| Unauthorized and cross-scope users cannot read or mutate records | Passing RLS and API negative-test report |
-| Expired evidence creates a finding and recalculates a dimension without silently restricting operations | Deterministic unit/integration test |
-| Missing requirements are detected by code, not AI | Unit test with stable reason codes |
-| AI response cannot satisfy a prerequisite before affirmative human confirmation | Integration test and audit sequence |
-| AI cannot call release/restriction/suspension functions | Tool-contract and database-permission negative tests |
-| Release requires authorized distinct human, current policy, and recent AAL2 | Guarded-function test and demo |
-| Restricted-data canary is quarantined before any model call | Spy/mock assertion and security event |
-| Duplicate/retried command produces one business effect | Idempotency and concurrency test |
-| Katherine produces semantically equivalent deterministic results on repeat | Golden-record regression report |
-| Every consequential action is attributable and immutable | Audit-catalog assertions |
+| **Exact deliverables** | This proposal's register/ADR/architecture as ratified decisions; a Prisma schema implementing Section 4's canonical data model in a Keystone-owned repo; RLS policies on every tenant-scoped table plus the negative-test suite proving isolation (Section 2.5); RBAC middleware implementing Section 7's 8 permission dimensions / 6 roles; the coherent identity/session implementation (Section 2.2); state-machine guard scaffolding (Section 5); restricted-data pipeline steps 1-6 (Section 11.1); a working, reachable AWS environment per Section 10.1's spec; CI/CD pipeline |
+| **Explicit exclusions** | No AI tool calls (OpenAI integration is Katherine); no frontend/UI at all; no live Gmail/Drive integration (Phase 3); no nine-provider suite (Phase 2); no production hardening, Multi-AZ, or load balancer (Phase 5); no real/production data |
+| **Dependencies & Keystone inputs** | G-11 (AWS/GitHub/Google Workspace accounts provisioned or delegated) resolved *before* work starts — see Section 15; G-01 (Supabase-departure ADR) ratified or redirected; G-13 (environment-separation approach) confirmed |
+| **Hours by work category** | Section 3, Phase 0 table — 81-105h |
+| **Demonstration requirements** | Live walkthrough: deployed environment's health-check responding; a real migration applied against the actual RDS instance; an RLS negative test run live showing cross-organization access denied; one action attempted under each of the 6 roles showing allow/deny matches Section 7.2 |
+| **Automated tests** | RLS negative-test suite; RBAC positive/negative path tests per role; schema-lint CI check (fails the build if a tenant-scoped table lacks RLS); CI check that the runtime DB role has no `BYPASSRLS`/superuser privilege |
+| **Acceptance evidence** | Passing CI run (log/URL); the recorded demonstration above; deployed environment URL + health-check response; this proposal + ADR-001 + Section 2.5's RLS strategy, reviewed — matching Spec 00's evidence table (source/change set, automated verification, demonstration, operations, sign-off) |
+| **Defect-resolution period** | Any severity-1/2 defect found in Keystone's review is fixed at no additional cost within 5 business days of being reported; the milestone isn't closed until resolved |
+| **Payment gate** | Authorized only once all acceptance evidence above is delivered, Keystone confirms no open severity-1/2 defects, and approval is given in writing via the Upwork milestone — never on a verbal/meeting basis (per Keystone's own instruction) |
+| **Go/no-go for Katherine milestone** | Data model, RLS, and RBAC ratified with no open blocking register item touching the schema/security boundary; G-08 (Katherine's synthetic content) supplied/approved; Katherine is separately authorized as its own Upwork milestone |
 
-**Defect-resolution period**
+### 14.2 Milestone 2 — Katherine Proof
 
-- Ten business days after consolidated acceptance feedback for reproducible in-scope defects.
-
-**Payment gate**
-
-- Milestone is funded before implementation.
-- Submission includes the repository commit, deployment link, test report, demonstration, and acceptance checklist.
-- Keystone approves payment after the written acceptance evidence passes; hours worked alone do not trigger payment.
-
-**Go/no-go for the next milestone**
-
-- Katherine acceptance suite passes with no open critical/high security defect.
-- Keystone accepts the actual architecture and operating-cost findings.
-- Nine-provider fixtures and authoritative rules are available.
-- Any next scope is separately written, priced, funded, and authorized in Upwork.
+| | |
+|---|---|
+| **Exact deliverables** | The job posting's own "first vertical slice" working end to end: Login → practitioner record → requirements checklist → evidence upload/AI-classify/human-confirm → per-dimension readiness recalculation → human release decision → audit log; the ~8 frontend screens (Section 3); four AI tool contracts, typed/schema-validated/audited (Section 6); restricted-data pipeline steps 7-11; BullMQ job infrastructure with idempotency/dead-letter/reconciliation (Section 2.2, point 16); the requester/reviewer/releaser hard-block + compensating co-sign (Section 7.3); the deterministic Katherine regression test; a recorded demonstration + test report |
+| **Explicit exclusions** | Nine-provider regression (Phase 2); live Gmail/Drive sync (Phase 3 — Katherine's evidence is seeded/manually uploaded); visual design polish (Phase 4 UX pass, Spec 11); production hardening/Multi-AZ/load balancer (Phase 5); SMS/Twilio, SendGrid, CloudFront (Section 2.2a) |
+| **Dependencies & Keystone inputs** | G-08 (Katherine's synthetic profile, requirement mix, and at least one restricted-data-shaped test string) supplied/approved by Keystone; Phase 0 milestone accepted; an OpenAI API account/key provisioned — under Keystone's account per Section 15, not the developer's |
+| **Hours by work category** | Section 3, Katherine table — 110-140h |
+| **Demonstration requirements** | Recorded, live walkthrough against the Katherine fixture showing: an AI-proposed classification that is *not* auto-accepted (the confirmation gate, client point 10); the restricted-data-shaped test string correctly triggering quarantine; an unauthorized-role release attempt being denied; the final human release decision succeeding with a complete audit trail |
+| **Automated tests** | Katherine deterministic regression suite (repeated runs produce semantically equivalent output); negative-path tests (unauthorized release, same-user requester/releaser conflict, quarantine-triggering content); BullMQ idempotency test (duplicate job submission is a no-op) |
+| **Acceptance evidence** | Passing CI run; the recorded demonstration above; the test report; sign-off per Spec 00's evidence table |
+| **Defect-resolution period** | Same 5-business-day no-cost fix window for severity-1/2 defects |
+| **Payment gate** | Same structure as Milestone 1 — full evidence, Keystone review, written Upwork approval |
+| **Go/no-go for Phase 2 (nine-provider generalization)** | Katherine's fixture passes deterministically with the human release gate demonstrated; no open severity-1/2 defects; Keystone explicitly authorizes Phase 2 as its own milestone — Katherine's completion does not auto-authorize it |
 
 ---
 
-## 21. Repository, ownership, deployment, and work-product control
+## 15. Work-Product Ownership and Account Transfer (client point 20)
 
-At the start of each paid milestone, work will be created directly in Keystone-controlled accounts wherever the relevant resource exists:
+**Confirmed: everything below is created directly in, or transferred into, Keystone-controlled accounts as part of the milestone that produces it — not held back until project end.**
 
-- GitHub repositories, branches, issues, Actions workflows, and release artifacts
-- Supabase organizations/projects, schemas, migrations, policies, Auth settings, Storage policies, Cron/Queue configuration, and backups
-- AWS account resources, container registry, task definitions, secrets, logs, alarms, and deployment configuration
-- Google Cloud/OAuth projects and approved scopes
-- OpenAI project, approved model configuration, prompts, tool schemas, and evaluation fixtures
-- Documentation, ADRs, data dictionaries, test fixtures, runbooks, diagrams, cost models, and acceptance evidence
+| Artifact type | Created in / transferred to | When |
+|---|---|---|
+| Repositories | Keystone's GitHub org directly, from the first commit | Milestone 1 start |
+| Cloud resources (AWS RDS/EC2/S3/IAM/etc.) | Keystone's AWS account directly | Milestone 1 start |
+| Credentials & secrets | Keystone's AWS Secrets Manager; developer holds scoped IAM access, never account ownership | Milestone 1 start |
+| Schemas (Prisma schema, migrations) | Committed to the Keystone-owned repo with every change | Milestone 1, ongoing |
+| Documentation (this proposal, ADR-001, architecture docs) | Delivered as acceptance evidence, stored in the Keystone-owned repo or Keystone's own doc system | Each milestone's acceptance |
+| Prompts & AI tool schema contracts | Committed to the Keystone-owned repo (`src/ai/`) | Milestone 2 |
+| Configurations (CI/CD, environment configs) | Committed to the Keystone-owned repo/GitHub Actions | Milestone 1, ongoing |
+| Test fixtures (Katherine fixture, regression suite) | Committed to the Keystone-owned repo | Milestone 2 |
+| Deployment assets (Docker images, IaC) | Pushed to a Keystone-owned registry/repo | Milestone 1, ongoing |
 
-Credentials are not transferred through source code or documentation. Keystone grants least-privilege access in its accounts and can revoke it. If an unavoidable temporary development artifact is created outside a Keystone account, it is listed in the milestone register and transferred before that milestone can be accepted. No milestone depends on waiting until the end of the entire project for handoff.
-
-Repository proposal:
-
-~~~
-keystone-provider-readiness/
-├── apps/web/                    # Next.js UI and server routes
-├── packages/domain/             # deterministic rules and reason codes
-├── packages/contracts/          # API, event, AI-tool, JSON Schemas
-├── supabase/migrations/         # schema, grants, RLS, guarded functions
-├── supabase/tests/              # pgTAP/RLS negative tests
-├── fixtures/katherine/          # synthetic golden record and expectations
-├── tests/                       # unit, integration, security, golden record
-├── docs/                        # ADRs, ERDs, registers, runbooks, decisions
-└── .github/workflows/           # validated CI and gated deployment
-~~~
-
-Production and non-production resources will be separated before real data is authorized. Phase 0 defines the separation; Katherine uses synthetic data only.
+**This requires one thing from Keystone before Milestone 1 can start:** G-11 (Section 1) — the AWS account, GitHub org, and Google Workspace project need to exist and be provisioned (or explicit written access delegated) *first*, so there is a Keystone-controlled destination to create things in from day one, rather than a developer-owned account that gets migrated later. We'd rather resolve this up front than do an access migration pass before Katherine's demo.
 
 ---
 
-## 22. Logging, monitoring, backup, and recovery assumptions
+## 16. Next Step
 
-- **Business audit:** append-only PostgreSQL events record actor, effective role/scope, action, entity/version, reason, policy version, correlation ID, and before/after hashes where appropriate.
-- **Operational logs:** structured, redacted logs contain correlation IDs and stable error codes, not raw evidence or secrets.
-- **Monitoring:** health, error rate, queue age/depth, dead-letter count, failed login/authorization attempts, model/schema failures, and reconciliation findings.
-- **Alerts:** security-sensitive and exhausted-job events route to named Keystone responders; channels are decided in Phase 0.
-- **Backups:** managed database backups and storage versioning are configured to the approved environment. Restore tests are part of production hardening, not Katherine.
-- **Recovery:** production RPO/RTO, regional design, archive retention, and legal hold are not assumed; they require G-16.
-- **Environment separation:** synthetic development/Katherine data remains separate from future pilot/production data and credentials.
-- **Restricted categories:** V1 does not intentionally model or expose PHI, child/family case details, SSNs, banking, tax identifiers, or direct-deposit data to AI. Suspected content fails closed into quarantine.
+Per Keystone's instruction, the controlling scope, assumptions, estimate, and acceptance terms in this document will be posted directly as the Upwork milestone documentation — this file (with diagrams/tables) is a supporting attachment, not the controlling record itself.
 
----
-
-## 23. Items not yet reliably estimable
-
-The following cannot be fixed-price estimated from the current information:
-
-- ChildLink and Elwyn integrations
-- PROMISe, HCSIS, ITF Waiver, payer, or enrollment integrations
-- County and joinder rule implementation
-- Live Gmail and Drive ingestion/reconciliation
-- Nine-provider regression suite content and coverage
-- Production document malware scanning/OCR until G-20 is resolved
-- Production availability, retention, backup, disaster recovery, and support obligations until G-16 is resolved
-- Full internal application beyond the Katherine slice
-- Provider portal
-- Legal, contractual, and policy-ratification work
-
-These are explicit exclusions, not assumptions hidden in the Phase 0 or Katherine prices.
-
----
-
-## 24. Proposed next step
-
-1. Keystone reviews this revision in Upwork.
-2. Remaining questions are resolved in an Upwork technical-review meeting.
-3. I post written meeting notes in Upwork.
-4. Keystone and I finalize the Phase 0 deliverables, amount, acceptance evidence, and exclusions in an independently funded Upwork milestone.
-5. Only after Phase 0 acceptance may Keystone choose whether to authorize Katherine through a separate funded milestone.
-
-No later milestone, integration, production activity, or scope expansion is authorized by this proposal.
-
----
-
-## 25. Technical reference baseline
-
-- Node.js releases: https://nodejs.org/en/about/previous-releases
-- Next.js 16 upgrade/runtime requirements: https://nextjs.org/docs/app/guides/upgrading/version-16
-- Supabase Row Level Security: https://supabase.com/docs/guides/database/postgres/row-level-security
-- Supabase MFA: https://supabase.com/docs/guides/auth/auth-mfa
-- Supabase Cron: https://supabase.com/docs/guides/cron
-- Supabase Queues/pgmq: https://supabase.com/docs/guides/queues
-- Supabase pricing: https://supabase.com/pricing
-- AWS Fargate pricing: https://aws.amazon.com/fargate/pricing/
+We propose a technical-review meeting after Keystone has reviewed this revision, to resolve the register (Section 1) and the business/policy questions (Section 12) — especially G-01 (Supabase ADR ratification), G-08 (Katherine content), and G-11 (account provisioning), since those three block the tightest possible Section 3 estimate. Per Keystone's instruction, nothing discussed in that meeting changes scope on its own — we'll produce written meeting notes afterward (decisions, assumptions, unresolved issues, proposed scope changes) and treat the scope as unchanged until confirmed and accepted through an Upwork milestone.
